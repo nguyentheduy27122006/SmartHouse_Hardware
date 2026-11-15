@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home - Đồ Án KLTN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        .toggle-checkbox:checked { right: 0; border-color: #4ade80; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #4ade80; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="max-w-4xl mx-auto p-4">
+        <!-- Header -->
+        <div class="text-center mb-8 pt-4">
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">SMART-HOME</h1>
+            <p class="text-gray-500 mt-2">Chào mừng bạn đến với cuộc sống tối giản – nơi ngôi nhà hiểu bạn.</p>
+        </div>
+
+        <!-- TẦNG 1 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6 border-t-4 border-blue-400">
+            <h2 class="text-xl font-bold text-blue-700 mb-4 border-b pb-2">Điều khiển Tầng 1</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Cửa chính -->
+                <div class="bg-red-50 p-4 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-red-600">🚪 CỬA CHÍNH:</span>
+                    <span id="door_status" class="font-bold text-red-600">ĐÃ ĐÓNG</span>
+                </div>
+                <!-- Đèn tầng 1 -->
+                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-gray-700">💡 Đèn tầng 1</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" id="t1_light" onchange="toggleDevice('home/floor_1/light', this.checked)" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out"/>
+                        <label for="t1_light" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <!-- Cửa nhà xe -->
+                <div class="bg-gray-50 p-4 rounded-lg col-span-1 md:col-span-2 text-center border">
+                    <span class="font-semibold text-red-600 block mb-3">🚗 Cửa nhà xe: <span id="garage_status">ĐÃ ĐÓNG</span></span>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="setDevice('home/floor_1/garage', 'OPEN')" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded shadow">MỞ CỬA NHÀ XE</button>
+                        <button onclick="setDevice('home/floor_1/garage', 'CLOSE')" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded shadow">ĐÓNG CỬA NHÀ XE</button>
+                    </div>
+                </div>
+                <!-- Cảm biến Môi trường -->
+                <div class="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+                    <div class="text-cyan-800 font-semibold mb-1">🌡️ Nhiệt độ: <span id="temp_val">--</span> °C</div>
+                    <div class="text-cyan-800 font-semibold">💧 Độ ẩm: <span id="hum_val">--</span> %</div>
+                </div>
+                <!-- Còi báo động -->
+                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-gray-700">🔊 Còi báo động</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                        <input type="checkbox" id="t1_buzzer" onchange="toggleDevice('home/floor_1/buzzer', this.checked)" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform"/>
+                        <label for="t1_buzzer" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TẦNG 2 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-6 border-t-4 border-green-400">
+            <h2 class="text-xl font-bold text-green-700 mb-4 border-b pb-2">Điều khiển Tầng 2</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Đèn phòng -->
+                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-gray-700">💡 Đèn phòng</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                        <input type="checkbox" id="t2_light" onchange="toggleDevice('home/floor_2/light', this.checked)" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform"/>
+                        <label for="t2_light" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <!-- Còi cảnh báo -->
+                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-gray-700">⚠️ Còi cảnh báo</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                        <input type="checkbox" id="t2_buzzer" onchange="toggleDevice('home/floor_2/buzzer', this.checked)" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform"/>
+                        <label for="t2_buzzer" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <!-- Trạng thái khói -->
+                <div class="col-span-1 md:col-span-2 text-center mt-2">
+                    <span class="font-semibold text-gray-600">Trạng thái khói: </span>
+                    <span id="smoke_status" class="font-bold text-green-500 bg-green-100 px-3 py-1 rounded-full">Bình thường</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TẦNG 3 -->
+        <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-purple-400">
+            <h2 class="text-xl font-bold text-purple-700 mb-4 border-b pb-2">Điều khiển Tầng 3</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Đèn tầng 3 -->
+                <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-gray-700">💡 Đèn tầng 3</span>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none">
+                        <input type="checkbox" id="t3_light" onchange="toggleDevice('home/light_room_3', this.checked)" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform"/>
+                        <label for="t3_light" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                <!-- Cửa tầng 3 -->
+                <div class="bg-red-50 p-4 rounded-lg flex items-center justify-center">
+                    <span class="font-bold text-red-600">🚨 CỬA ĐÃ <span id="t3_door_status">ĐÓNG</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-2 rounded shadow-lg hidden">
+            Đã cập nhật lệnh!
+        </div>
+    </div>
+
+    <script>
+        // BƯỚC 1: ĐIỀN THÔNG TIN FIREBASE CỦA BẠN VÀO ĐÂY
+        const firebaseConfig = {
+            apiKey: "AIzaSyBom2FOJvMisw2NcE89Zkr-rP_dgOSqbMY",
+            authDomain: "smart-house-fcd4f.firebaseapp.com",
+            databaseURL: "https://smart-house-fcd4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "smart-house-fcd4f",
+            storageBucket: "smart-house-fcd4f.firebasestorage.app",
+            messagingSenderId: "291362924511",
+            appId: "1:291362924511:web:c00dcca1558b5cd3cbc66a",
+            measurementId: "G-GGBTGWYQTJ"
+        };
+
+        // Khởi tạo Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        // BƯỚC 2: HÀM GỬI LỆNH TỪ WEB LÊN FIREBASE (Dùng cho Nút Bật/Tắt)
+        function toggleDevice(path, value) {
+            db.ref(path).set(value)
+              .then(() => showToast())
+              .catch(err => console.error("Lỗi: ", err));
+        }
+
+        // HÀM GỬI LỆNH CHO CỬA CUỐN
+        function setDevice(path, value) {
+            db.ref(path).set(value)
+              .then(() => showToast())
+              .catch(err => console.error("Lỗi: ", err));
+        }
+
+        // BƯỚC 3: HÀM LẮNG NGHE DỮ LIỆU TỪ ESP8266 NODEMCU ĐẨY LÊN (Cảm biến)
+        // Lắng nghe nhiệt độ, độ ẩm
+        db.ref('home/floor_1/temp').on('value', snap => {
+            document.getElementById('temp_val').innerText = snap.val() !== null ? snap.val() : '--';
+        });
+        db.ref('home/floor_1/hum').on('value', snap => {
+            document.getElementById('hum_val').innerText = snap.val() !== null ? snap.val() : '--';
+        });
+
+        // Lắng nghe trạng thái cửa chính Tầng 1 và cửa cuốn nhà xe
+        db.ref('home/floor_1/door').on('value', snap => {
+            const doorEl = document.getElementById('door_status');
+            if (snap.val() === true) {
+                doorEl.innerText = "Đang mở";
+                doorEl.className = "font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full";
+            } else {
+                doorEl.innerText = "Đang đóng";
+                doorEl.className = "font-bold text-red-500 bg-red-100 px-3 py-1 rounded-full";
+            }
+        });
+        db.ref('home/floor_1/garage_status').on('value', snap => {
+            const garageEl = document.getElementById('garage_status');
+            if (snap.val() === "OPEN") {
+                garageEl.innerText = "Đang mở";
+                garageEl.className = "font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full";
+            } else {
+                garageEl.innerText = "Đang đóng";
+                garageEl.className = "font-bold text-gray-600 bg-gray-200 px-3 py-1 rounded-full";
+            }
+        });
+
+        // Lắng nghe trạng thái khói (Tầng 2)
+        db.ref('home/floor_2/smoke_status').on('value', snap => {
+            const smokeEl = document.getElementById('smoke_status');
+            if(snap.val() === true || snap.val() === "PHÁT HIỆN KHÓI") {
+                smokeEl.innerText = "PHÁT HIỆN KHÓI";
+                smokeEl.className = "font-bold text-red-600 bg-red-100 px-3 py-1 rounded-full animate-pulse";
+            } else {
+                smokeEl.innerText = "Bình thường";
+                smokeEl.className = "font-bold text-green-500 bg-green-100 px-3 py-1 rounded-full";
+            }
+        });
+
+        // Lắng nghe trạng thái cửa vân tay (Tầng 3)
+        db.ref('home/door_status').on('value', snap => {
+            const t3DoorEl = document.getElementById('t3_door_status');
+            if (snap.val() === true) {
+                t3DoorEl.innerText = "MỞ";
+                t3DoorEl.parentElement.className = "font-bold text-green-600";
+            } else {
+                t3DoorEl.innerText = "ĐÓNG";
+                t3DoorEl.parentElement.className = "font-bold text-red-600";
+            }
+        });
+
+        // Đồng bộ trạng thái các công tắc (Nếu ESP32 cập nhật, Web cũng sẽ đổi theo)
+        const toggles = {
+            'home/floor_1/light': 't1_light',
+            'home/floor_1/buzzer': 't1_buzzer',
+            'home/floor_2/light': 't2_light',
+            'home/floor_2/buzzer': 't2_buzzer',
+            'home/light_room_3': 't3_light'
+        };
+
+        for (let path in toggles) {
+            db.ref(path).on('value', snap => {
+                if (snap.val() !== null) {
+                    document.getElementById(toggles[path]).checked = snap.val();
+                }
+            });
+        }
+
+        // Hiển thị thông báo nhỏ khi nhấn nút
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+    </script>
+</body>
+</html>
