@@ -1,39 +1,41 @@
 /*
  * ============================================================================
- * SMARTHOUSE V4 - FIRMWARE THỐNG NHẤT TẦNG 1 (ESP8266 NODEMCU)
+ * SMARTHOUSE V4 - FIRMWARE TẦNG 1.2 (ESP8266 NODEMCU)
+ * QUẢN LÝ: CỬA CHÍNH (KEYPAD 4x4 + LCD 16x2 + SERVO) & THANG MÁY (L298N)
  * ============================================================================
- * Danh sách 5 thiết bị ngoại vi Tầng 1 đã thống nhất theo đúng cấu trúc Firebase:
- *   1. Cửa Garage (L298N kênh A - OUT1/OUT2):
- *      - Chân D5 (GPIO14) -> L298N IN1, D6 (GPIO12) -> L298N IN2 (giữ jumper ENA)
- *      - Firebase: đọc lệnh "/home/floor_1/garage/command" ("open" / "close"),
- *                  ghi trạng thái "/home/floor_1/garage/status" ("open" / "closed")
- *   2. Cảm biến nhiệt độ, độ ẩm DHT11 & Màn hình LCD 16x2 I2C:
- *      - DHT11 nối chân D3 (GPIO0)
- *      - LCD 16x2 I2C nối D1 (GPIO5 - SCL), D2 (GPIO4 - SDA) (tự dò địa chỉ 0x27 / 0x3F / 0x26)
- *      - Firebase: ghi "/home/floor_1/temperature_1" (°C) và "/home/floor_1/humidity_1" (%)
- *   3. Dãy đèn LED trong nhà (qua MOSFET):
- *      - Chân D0 (GPIO16) điều khiển chung dãy đèn LED
- *      - Firebase: đọc "/home/floor_1/light_room_1" (true = sáng, false = tắt)
- *   4. Quạt thông qua OUTB (OUT3/OUT4) của L298N chung với cửa Garage:
- *      - Chân D7 (GPIO13) -> L298N IN3 (IN4 nối GND, giữ jumper ENB)
- *      - Firebase: đọc "/home/floor_1/fan_room_1" (true = quạt chạy, false = tắt)
- *   5. Báo trộm nhà xe (PIR / Hồng ngoại):
- *      - Chân D4 (GPIO2) đọc tín hiệu Digital
- *      - Firebase: đọc "/home/floor_1/alarm_enabled_1" (bật/tắt chế độ chống trộm),
- *                  ghi "/home/floor_1/alarm_triggered_1" (true = báo động khi có trộm)
- *
- * Giao tiếp Firebase:
- *   Dùng trực tiếp BearSSL::WiFiClientSecure + ESP8266HTTPClient (REST API GET/PUT)
- *   giúp ESP8266 hoạt động ổn định, không bị tràn RAM hay lỗi mConnectBasicClient.
+ * Danh sách thiết bị ngoại vi trên mạch Tầng 1.2:
+ *   1. Bàn phím ma trận 4x4 I2C (PCF8574 - địa chỉ 0x20):
+ *      - Nối chung bus I2C: D1 (GPIO5 - SCL), D2 (GPIO4 - SDA)
+ *      - Chỉ dùng để nhập mật khẩu mở Cửa chính vào nhà (mặc định "111#"):
+ *        + Phím 0..9, *, #: nhập mật khẩu
+ *        + Phím A: xác nhận mở Cửa chính (hoặc xác nhận khi đổi mật khẩu)
+ *        + Phím C: xóa mật khẩu đang nhập
+ *        + Phím D: đổi mật khẩu cửa chính
+ *   2. Màn hình LCD 16x2 I2C (địa chỉ 0x27 / 0x3F / 0x26):
+ *      - Nối chung bus I2C: D1 (SCL), D2 (SDA)
+ *      - Hiển thị giao diện nhập mật khẩu và trạng thái Cửa chính
+ *   3. Động cơ Servo SG90 Cửa chính:
+ *      - Chân điều khiển: D4 (GPIO2)
+ *      - Khi mở cửa: giữ mở 3 giây rồi tự đóng, đồng bộ lên "/home/floor_1/door_opened_1"
+ *        và tự động bật đèn tầng 1 ("/home/floor_1/light_room_1" = true)
+ *   4. Hệ thống Thang máy 3 tầng (Động cơ DC qua mạch cầu H L298N - chỉ điều khiển qua Web):
+ *      - Chân D5 (GPIO14) -> L298N IN1 (chiều đi LÊN)
+ *      - Chân D6 (GPIO12) -> L298N IN2 (chiều đi XUỐNG) (giữ jumper ENA trên L298N)
+ *      - Chỉ nhận lệnh gọi tầng (1, 2, 3) từ Web qua Firebase "/home/elevator/target_floor",
+ *        cập nhật tầng hiện tại lên "/home/elevator/current_floor" và "/home/elevator/status"
  * ============================================================================
  */
 
+// LƯU Ý QUAN TRỌNG: ESP8266WiFi và HTTPClient phải được include TRƯỚC Keypad.h
+// vì Keypad.h có "#define CLOSED HIGH" trùng tên với hằng CLOSED trong lwIP.
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecureBearSSL.h>
 #include <ESP8266HTTPClient.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <DHT.h>
+#include <Servo.h>
+#include "Keypad_I2C.h"
+#include <Keypad.h>
 
 // ==== 1. Cấu hình Wi-Fi + Firebase ====
 #define WIFI_SSID      "Iphone"
@@ -48,90 +50,100 @@
 #define USER_EMAIL     "nvtngang@hcmus.edu.vn"
 #define USER_PASSWORD  "12345678"
 
-// ==== 2. Đường dẫn Firebase chuẩn theo đúng bảng thiết bị Tầng 1 ====
-#define PATH_LED              "/home/floor_1/light_room_1"       // [light1]  Đèn tầng 1 (2 dây LED gộp chung)
-#define PATH_FAN              "/home/floor_1/fan_room_1"         // [fan1]    Quạt tầng 1 (L298N OUTB)
-#define PATH_GARAGE_STATUS    "/home/floor_1/garage/status"      // [garage]  Trạng thái cửa cuốn nhà xe ("open" / "closed")
-#define PATH_GARAGE_CMD       "/home/floor_1/garage/command"     // [garage]  Lệnh cửa cuốn nhà xe ("open" / "close")
-#define PATH_ALARM_ENABLED    "/home/floor_1/alarm_enabled_1"    // [alarm]   Bật/tắt báo trộm nhà xe (từ Web)
-#define PATH_ALARM_TRIGGERED  "/home/floor_1/alarm_triggered_1"  // [alarm]   Trạng thái kích hoạt báo trộm nhà xe
-#define PATH_TEMPERATURE      "/home/floor_1/temperature_1"      // [climate] Nhiệt độ DHT11 (°C)
-#define PATH_HUMIDITY         "/home/floor_1/humidity_1"         // [climate] Độ ẩm DHT11 (%)
+// ==== 2. Đường dẫn Firebase cho Cửa chính & Thang máy ====
+#define PATH_DOOR_OPENED      "/home/floor_1/door_opened_1"    // [door1] Trạng thái cửa chính (true = đang mở)
+#define PATH_LIGHT_ROOM_1     "/home/floor_1/light_room_1"     // [light1] Tự động bật đèn tầng 1 khi mở cửa chính
+#define PATH_ELEV_TARGET      "/home/elevator/target_floor"    // [elevator] Tầng đích nhận từ Web (1, 2, 3)
+#define PATH_ELEV_CURRENT     "/home/elevator/current_floor"   // [elevator] Tầng hiện tại của thang máy (1, 2, 3)
+#define PATH_ELEV_STATUS      "/home/elevator/status"          // [elevator] Trạng thái ("idle", "moving_up", "moving_down")
 
-// ==== 3. Sơ đồ chân ESP8266 NodeMCU ====
-// Lưu ý boot ESP8266: D3 (GPIO0), D4 (GPIO2) phải ở mức HIGH lúc cấp nguồn; D8 (GPIO15) ở mức LOW.
-#define I2C_SCL_PIN         D1    // GPIO5  - SCL cho LCD 16x2 I2C
-#define I2C_SDA_PIN         D2    // GPIO4  - SDA cho LCD 16x2 I2C
-#define DHT_PIN             D3    // GPIO0  - Cảm biến nhiệt độ, độ ẩm DHT11
-#define ANTITHEFT_PIN       D4    // GPIO2  - Cảm biến chống trộm (Digital)
-#define GARAGE_IN1          D5    // GPIO14 - L298N IN1 (Kênh A - OUTA cho cửa Garage)
-#define GARAGE_IN2          D6    // GPIO12 - L298N IN2 (Kênh A - OUTA cho cửa Garage)
-#define FAN_PIN             D7    // GPIO13 - L298N IN3 (Kênh B - OUTB cho Quạt, IN4 nối GND)
-#define LED_PIN             D0    // GPIO16 - MOSFET điều khiển dãy đèn LED trong nhà (light_room_1)
+// ==== 3. Sơ đồ chân ESP8266 NodeMCU (Mạch Tầng 1.2) ====
+#define I2C_SCL_PIN           D1    // GPIO5  - SCL chung cho LCD 16x2 & Keypad PCF8574
+#define I2C_SDA_PIN           D2    // GPIO4  - SDA chung cho LCD 16x2 & Keypad PCF8574
+#define SERVO_DOOR_PIN        D4    // GPIO2  - Động cơ Servo SG90 mở cửa chính
+#define ELEV_IN1_PIN          D5    // GPIO14 - L298N IN1 (Thang máy đi LÊN)
+#define ELEV_IN2_PIN          D6    // GPIO12 - L298N IN2 (Thang máy đi XUỐNG)
 
-// Mức tín hiệu kích hoạt của cảm biến chống trộm tại chân D4:
-// - Đặt LOW nếu dùng cảm biến hồng ngoại LM393 / công tắc từ (xuất LOW khi phát hiện)
-// - Đặt HIGH nếu dùng cảm biến chuyển động PIR HC-SR501 (xuất HIGH khi phát hiện)
-#define ANTITHEFT_ACTIVE_LEVEL LOW
+// (Tùy chọn) Công tắc hành trình dừng tầng 1, 2, 3 (nối GND, tích cực mức LOW).
+// Nếu không gắn công tắc hành trình, thang máy sẽ tự dừng theo thời gian ELEV_TIME_PER_FLOOR_MS.
+#define USE_LIMIT_SWITCHES    false
+#define LIMIT_SW_FLOOR1_PIN   D0    // GPIO16 - Công tắc hành trình tầng 1
+#define LIMIT_SW_FLOOR2_PIN   D3    // GPIO0  - Công tắc hành trình tầng 2
+#define LIMIT_SW_FLOOR3_PIN   D7    // GPIO13 - Công tắc hành trình tầng 3
 
-// ==== 4. Thông số hoạt động ====
-#define DHT_TYPE            DHT11
-#define GARAGE_RUN_MS       300
-#define GARAGE_SPEED_OPEN   90    // PWM 0..255
-#define GARAGE_SPEED_CLOSE  85
-#define POLL_MS             500   // Chu kỳ đọc lệnh từ Firebase (500ms)
-#define DHT_READ_MS         2000  // Chu kỳ đọc DHT11 & cập nhật LCD (2000ms)
-#define DHT_UPLOAD_MS       10000 // Chu kỳ tối thiểu đẩy nhiệt độ/độ ẩm lên Firebase (10s)
-#define ANTITHEFT_DEBOUNCE  100   // Chống nhiễu cảm biến chống trộm (100ms)
+// Địa chỉ I2C
+#define KEYPAD_I2C_ADDR       0x20  // Địa chỉ module mở rộng PCF8574 của Keypad 4x4
+#define DEFAULT_LCD_ADDR      0x27  // Địa chỉ mặc định của LCD 16x2 (tự động quét 0x27/0x3F/0x26)
 
-// ==== 5. Đối tượng phần cứng & biến trạng thái ====
+// ==== 4. Thông số hoạt động Cửa chính & Thang máy ====
+#define SERVO_CLOSED_ANGLE    100   // Góc Servo khi đóng cửa chính
+#define SERVO_OPEN_ANGLE      20    // Góc Servo khi mở cửa chính
+#define DOOR_OPEN_MS          3000  // Thời gian giữ mở cửa chính (3000ms = 3 giây)
+
+#define ELEV_SPEED_UP         180   // Tốc độ PWM (0..255) khi thang máy đi lên
+#define ELEV_SPEED_DOWN       150   // Tốc độ PWM (0..255) khi thang máy đi xuống
+#define ELEV_TIME_PER_FLOOR_MS 1800 // Thời gian di chuyển qua mỗi tầng (1.8 giây / tầng)
+#define POLL_MS               500   // Chu kỳ đồng bộ Firebase (500ms)
+
+// ==== 5. Khởi tạo đối tượng phần cứng ====
 BearSSL::WiFiClientSecure tlsClient;
 HTTPClient http;
-DHT dht(DHT_PIN, DHT_TYPE);
+Servo doorServo;
 LiquidCrystal_I2C *lcd = nullptr;
 bool hasLcd = false;
-uint8_t lcdAddr = 0x27;
+bool hasKeypad = false;
+uint8_t lcdAddr = DEFAULT_LCD_ADDR;
 
+const byte ROWS = 4;
+const byte COLS = 4;
+char hexaKeys[ROWS][COLS] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+byte rowPins[ROWS] = {0, 1, 2, 3};
+byte colPins[COLS] = {4, 5, 6, 7};
+Keypad_I2C kpad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS, KEYPAD_I2C_ADDR, 1, &Wire);
+
+// ==== 6. Biến trạng thái hệ thống ====
 String authToken = "";
 unsigned long lastTokenTime = 0;
 bool firebaseReadyFlag = false;
 bool initialSyncDone = false;
 unsigned long lastPoll = 0;
 
-// [3] Trạng thái Đèn tầng 1 (chân D0 - /home/floor_1/light_room_1)
-bool ledOn = false;
+// Trạng thái Bàn phím & Mật khẩu cửa chính
+String password = "111#";
+String input = "";
+bool changingPass = false;
+bool confirmedOld = false;
+char lastKey = 0;
 
-// [4] Trạng thái Quạt tầng 1 (điều khiển riêng qua OUTB L298N chân D7 - /home/floor_1/fan_room_1)
-bool fanOn = false;
+// Trạng thái Cửa chính
+bool doorOpen = false;
+unsigned long doorCloseAt = 0;
+unsigned long lcdRestoreAt = 0;
+bool doorOpenDirty = false;
+bool doorOpenTargetVal = false;
+bool turnOnRoomLightDirty = false;
 
-// Trạng thái Cửa Garage
-bool garageRunning = false;
-unsigned long garageStart = 0;
-String lastCommand = "";   // "open" / "close" đã chạy gần nhất
-bool garageStatusDirty = false;
-
-// Trạng thái DHT11 & LCD
-unsigned long lastDhtRead = 0;
-unsigned long lastDhtUpload = 0;
-float currentTemp = NAN, currentHumi = NAN;
-float sentTemp = -1000.0f, sentHumi = -1000.0f;
-
-// Trạng thái Cảm biến chống trộm
-bool alarmEnabled = true;        // Đọc từ /home/floor_1/alarm_enabled_1
-bool intrusionDetected = false;  // Đọc từ chân D4 -> ghi lên /home/floor_1/motion_detected_1
-bool lastSyncedIntrusion = false;
-bool lastSyncedAlarmTrig = false;
-bool firstIntrusionSync = false;
-int lastRawAntitheft = -1;
-unsigned long lastAntitheftChange = 0;
+// Trạng thái Thang máy (Tầng 1..3)
+enum ElevatorState { ELEV_IDLE, ELEV_MOVING_UP, ELEV_MOVING_DOWN };
+ElevatorState elevState = ELEV_IDLE;
+int currentFloor = 1;
+int targetFloor = 1;
+unsigned long elevMoveStartTime = 0;
+unsigned long elevMoveDuration = 0;
+bool elevStatusDirty = false;
 
 // Theo dõi log Firebase
-String seenFan = "", seenLed = "", seenGarage = "", seenAlarmEn = "";
+String seenElevTarget = "";
 unsigned long readOk = 0, readFail = 0, lastErrPrint = 0;
 unsigned long lastWifiPrint = 0;
 String lastHttpError = "";
 
-// ==== 6. Các hàm Log & REST API Firebase (GET / PUT) ====
+// ==== 7. Các hàm Log & REST API Firebase (GET / PUT) ====
 void logRead(const char *path, String &seen, const String &val) {
   readOk++;
   if (val == seen) return;
@@ -215,56 +227,35 @@ bool fbSetBool(const char *path, bool val) {
   return fbPutRaw(path, val ? "true" : "false");
 }
 
-bool fbSetFloat(const char *path, float val) {
-  return fbPutRaw(path, String(val, 1));
+bool fbSetInt(const char *path, int val) {
+  return fbPutRaw(path, String(val));
 }
 
 bool fbSetString(const char *path, const String &val) {
   return fbPutRaw(path, "\"" + val + "\"");
 }
 
-bool fbGetBool(const char *path, bool &outVal, bool defaultIfNull = false) {
-  String raw;
-  if (!fbGetRaw(path, raw)) return false;
-  if (raw == "true") {
-    outVal = true;
-    return true;
-  } else if (raw == "false") {
-    outVal = false;
-    return true;
-  } else if (raw == "null") {
-    Serial.printf("ℹ️ [Firebase] Node %s chua co (null) -> Tu dong khoi tao = %s\n",
-                  path, defaultIfNull ? "true" : "false");
-    fbSetBool(path, defaultIfNull);
-    outVal = defaultIfNull;
-    return true;
-  }
-  lastHttpError = "Gia tri khong phai bool (" + raw + ")";
-  return false;
-}
-
-bool fbGetString(const char *path, String &outVal, const char *defaultIfNull = nullptr) {
+bool fbGetInt(const char *path, int &outVal, int defaultIfNull = 1) {
   String raw;
   if (!fbGetRaw(path, raw)) return false;
   if (raw == "null") {
-    if (defaultIfNull != nullptr) {
-      Serial.printf("ℹ️ [Firebase] Node %s chua co (null) -> Tu dong khoi tao = \"%s\"\n", path, defaultIfNull);
-      fbSetString(path, String(defaultIfNull));
-      outVal = String(defaultIfNull);
-      return true;
-    }
-    lastHttpError = "Node chua ton tai (null)";
-    return false;
+    Serial.printf("ℹ️ [Firebase] Node %s chua co (null) -> Tu dong khoi tao = %d\n", path, defaultIfNull);
+    fbSetInt(path, defaultIfNull);
+    outVal = defaultIfNull;
+    return true;
   }
-  if (raw.length() >= 2 && raw.startsWith("\"") && raw.endsWith("\"")) {
-    outVal = raw.substring(1, raw.length() - 1);
-  } else {
-    outVal = raw;
+  if (raw.startsWith("\"") && raw.endsWith("\"") && raw.length() >= 2) {
+    raw = raw.substring(1, raw.length() - 1);
   }
-  return true;
+  int parsed = raw.toInt();
+  if (parsed >= 1 && parsed <= 3) {
+    outVal = parsed;
+    return true;
+  }
+  lastHttpError = "Gia tri tang khong hop le (" + raw + ")";
+  return false;
 }
 
-// Đăng nhập Email/Password qua REST API nếu USE_FIREBASE_TEST_MODE == false
 bool loginFirebaseEmail() {
   Serial.printf("[Firebase] Dang dang nhap Email: %s ...\n", USER_EMAIL);
   String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + String(API_KEY);
@@ -299,193 +290,246 @@ bool loginFirebaseEmail() {
   return false;
 }
 
-// ==== 7. Điều khiển Thiết bị 1, 3, 4 (Garage, Dãy đèn LED gộp, Quạt) ====
-void setFan(bool on) {
-  if (on == fanOn) return;
-  fanOn = on;
-  digitalWrite(FAN_PIN, on ? HIGH : LOW);
-  Serial.printf("🌀 [Quat OUTB - %s] -> %s\n", PATH_FAN, on ? "BAT" : "TAT");
-}
-
-void setLedStrip(bool on) {
-  if (on == ledOn) return;
-  ledOn = on;
-  digitalWrite(LED_PIN, on ? HIGH : LOW);
-  Serial.printf("💡 [Day den LED (D0) - %s] -> %s\n", PATH_LED, on ? "BAT" : "TAT");
-}
-
-void stopGarage() {
-  digitalWrite(GARAGE_IN1, LOW);
-  digitalWrite(GARAGE_IN2, LOW);
-}
-
-void startGarage(const String &cmd) {
-  Serial.printf("🚗 [Garage OUTA - %s] -> %s\n", PATH_GARAGE_CMD, cmd == "open" ? "MO CUA" : "DONG CUA");
-  if (cmd == "open") {
-    digitalWrite(GARAGE_IN2, LOW);
-    analogWrite(GARAGE_IN1, GARAGE_SPEED_OPEN);
-  } else {
-    digitalWrite(GARAGE_IN1, LOW);
-    analogWrite(GARAGE_IN2, GARAGE_SPEED_CLOSE);
-  }
-  garageStart = millis();
-  garageRunning = true;
-  lastCommand = cmd;
-}
-
-void runGarage() {
-  if (garageRunning && millis() - garageStart >= GARAGE_RUN_MS) {
-    stopGarage();
-    garageRunning = false;
-    garageStatusDirty = true;
-    Serial.println(F("🚗 [Garage OUTA] Dung motor (het 300ms)"));
-  }
-
-  if (garageStatusDirty && WiFi.status() == WL_CONNECTED && firebaseReadyFlag) {
-    String st = (lastCommand == "open") ? "open" : "closed";
-    if (fbSetString(PATH_GARAGE_STATUS, st)) {
-      garageStatusDirty = false;
-    }
-  }
-}
-
-// ==== 8. Thiết bị 2 & 5: Cảm biến DHT11 + LCD 16x2 I2C + Cảm biến chống trộm ====
-void updateLcdDisplay() {
+// ==== 8. Giao diện hiển thị LCD 16x2 (Cửa chính) ====
+void showPrompt() {
   if (!hasLcd || lcd == nullptr) return;
-
-  // Dòng 1: Hiển thị Nhiệt độ & Độ ẩm
+  lcd->clear();
   lcd->setCursor(0, 0);
-  if (isnan(currentTemp) || isnan(currentHumi)) {
-    lcd->print("DHT11: Loi doc  ");
-  } else {
-    char line1[17];
-    snprintf(line1, sizeof(line1), "T:%.1fC H:%.0f%%   ", currentTemp, currentHumi);
-    lcd->print(line1);
-  }
+  lcd->print(changingPass ? (confirmedOld ? "Nhap MK moi:" : "Nhap MK cu:") : "Nhap mat khau:");
 
-  // Dòng 2: Hiển thị trạng thái An ninh (Chống trộm) & Quạt
   lcd->setCursor(0, 1);
-  if (alarmEnabled && intrusionDetected) {
-    lcd->print("!CANH BAO TROM! ");
-  } else {
-    char line2[17];
-    snprintf(line2, sizeof(line2), "AnNinh:%s Q:%s", alarmEnabled ? "ON " : "OFF", fanOn ? "ON " : "OFF");
-    lcd->print(line2);
+  if (input.length() > 0) {
+    lcd->print("Nhap: ");
+    for (unsigned int i = 0; i < input.length() && i < 10; i++) lcd->print('*');
+  } else if (!changingPass) {
+    lcd->print("A:Mo cua  D:Doi");
   }
+  lcdRestoreAt = 0;
 }
 
-void handleAntiTheftSensor() {
-  int raw = digitalRead(ANTITHEFT_PIN);
-  unsigned long now = millis();
+void showMessage(const char *line1, const char *line2, unsigned long durationMs) {
+  if (!hasLcd || lcd == nullptr) return;
+  lcd->clear();
+  lcd->setCursor(0, 0);
+  lcd->print(line1);
+  lcd->setCursor(0, 1);
+  lcd->print(line2);
+  lcdRestoreAt = millis() + durationMs;
+}
 
-  if (raw != lastRawAntitheft) {
-    lastRawAntitheft = raw;
-    lastAntitheftChange = now;
+// ==== 9. Điều khiển Cửa chính (Servo D4) ====
+void openMainDoor() {
+  doorServo.write(SERVO_OPEN_ANGLE);
+  doorOpen = true;
+  doorCloseAt = millis() + DOOR_OPEN_MS;
+  showMessage("Mat khau dung!", "Cua chinh: MO", DOOR_OPEN_MS);
+  Serial.println(F("🚪 [Cua chinh] MO CUA (3 giay) -> Bat den Tang 1"));
+
+  doorOpenDirty = true;
+  doorOpenTargetVal = true;
+  turnOnRoomLightDirty = true;
+}
+
+void handleMainDoor() {
+  if (doorOpen && (long)(millis() - doorCloseAt) >= 0) {
+    doorServo.write(SERVO_CLOSED_ANGLE);
+    doorOpen = false;
+    Serial.println(F("🚪 [Cua chinh] DONG CUA (het 3 giay)"));
+    showPrompt();
+
+    doorOpenDirty = true;
+    doorOpenTargetVal = false;
   }
 
-  if (now - lastAntitheftChange >= ANTITHEFT_DEBOUNCE) {
-    bool detected = (raw == ANTITHEFT_ACTIVE_LEVEL);
-    if (detected != intrusionDetected) {
-      intrusionDetected = detected;
-      Serial.printf("🚨 [Chong trom D4] -> %s (alarm_enabled_1 = %s)\n",
-                    intrusionDetected ? "PHAT HIEN XAM NHAP!" : "Binh thuong",
-                    alarmEnabled ? "true" : "false");
-      updateLcdDisplay();
-    }
-  }
-
-  // Đẩy trạng thái báo trộm lên Firebase (/home/floor_1/alarm_triggered_1)
+  // Đồng bộ trạng thái cửa chính & bật đèn tầng 1 lên Firebase
   if (WiFi.status() == WL_CONNECTED && firebaseReadyFlag) {
-    bool alarmTrig = alarmEnabled && intrusionDetected;
-    if (!firstIntrusionSync || alarmTrig != lastSyncedAlarmTrig) {
-      if (fbSetBool(PATH_ALARM_TRIGGERED, alarmTrig)) {
-        lastSyncedAlarmTrig = alarmTrig;
-        firstIntrusionSync = true;
+    if (doorOpenDirty) {
+      if (fbSetBool(PATH_DOOR_OPENED, doorOpenTargetVal)) {
+        doorOpenDirty = false;
+      }
+    }
+    if (turnOnRoomLightDirty) {
+      if (fbSetBool(PATH_LIGHT_ROOM_1, true)) {
+        turnOnRoomLightDirty = false;
       }
     }
   }
 }
 
-void handleClimateAndLcd() {
-  unsigned long now = millis();
-  if (now - lastDhtRead < DHT_READ_MS) return;
-  lastDhtRead = now;
+// ==== 10. Điều khiển Thang máy (L298N D5/D6 - chỉ điều khiển qua Web/Firebase) ====
+void stopElevatorMotor() {
+  digitalWrite(ELEV_IN1_PIN, LOW);
+  digitalWrite(ELEV_IN2_PIN, LOW);
+}
 
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-
-  if (isnan(h) || isnan(t)) {
-    if (!isnan(currentTemp)) {
-      Serial.println(F("⚠️ [DHT11] Khong doc duoc du lieu tai chan D3 (kiem tra day tin hieu)"));
-    }
-    currentTemp = NAN;
-    currentHumi = NAN;
-    updateLcdDisplay();
+void moveElevatorToFloor(int destFloor) {
+  if (destFloor < 1 || destFloor > 3) return;
+  if (elevState != ELEV_IDLE) {
+    Serial.printf("⚠️ [Thang may] Dang di chuyen, bo qua lenh goi tang %d\n", destFloor);
+    return;
+  }
+  if (destFloor == currentFloor) {
+    Serial.printf("ℹ️ [Thang may] Da o san Tang %d\n", destFloor);
     return;
   }
 
-  bool changedLocal = isnan(currentTemp) || abs(t - currentTemp) >= 0.1f || abs(h - currentHumi) >= 0.5f;
-  currentTemp = t;
-  currentHumi = h;
+  targetFloor = destFloor;
+  int floorsToMove = abs(targetFloor - currentFloor);
+  elevMoveDuration = (unsigned long)floorsToMove * ELEV_TIME_PER_FLOOR_MS;
+  elevMoveStartTime = millis();
 
-  if (changedLocal) {
-    Serial.printf("🌡️ [DHT11] Nhiet do: %.1f C | Do am: %.1f %%\n", currentTemp, currentHumi);
-    updateLcdDisplay();
+  if (targetFloor > currentFloor) {
+    elevState = ELEV_MOVING_UP;
+    digitalWrite(ELEV_IN2_PIN, LOW);
+    analogWrite(ELEV_IN1_PIN, ELEV_SPEED_UP);
+    Serial.printf("🛗 [Thang may - Web] DI LEN: Tang %d -> Tang %d (%lu ms)\n",
+                  currentFloor, targetFloor, elevMoveDuration);
+  } else {
+    elevState = ELEV_MOVING_DOWN;
+    digitalWrite(ELEV_IN1_PIN, LOW);
+    analogWrite(ELEV_IN2_PIN, ELEV_SPEED_DOWN);
+    Serial.printf("🛗 [Thang may - Web] DI XUONG: Tang %d -> Tang %d (%lu ms)\n",
+                  currentFloor, targetFloor, elevMoveDuration);
   }
 
-  // Đẩy lên Firebase nếu thay đổi đáng kể (>= 0.5°C hoặc >= 1% độ ẩm) và cách lần gửi trước >= 10s
-  if (WiFi.status() == WL_CONNECTED && firebaseReadyFlag) {
-    bool changedCloud = abs(currentTemp - sentTemp) >= 0.5f || abs(currentHumi - sentHumi) >= 1.0f;
-    if (changedCloud && (lastDhtUpload == 0 || now - lastDhtUpload >= DHT_UPLOAD_MS)) {
-      lastDhtUpload = now;
-      bool okT = fbSetFloat(PATH_TEMPERATURE, currentTemp);
-      bool okH = fbSetFloat(PATH_HUMIDITY, currentHumi);
-      if (okT && okH) {
-        sentTemp = currentTemp;
-        sentHumi = currentHumi;
-      }
+  elevStatusDirty = true;
+}
+
+void handleElevator() {
+  if (elevState != ELEV_IDLE) {
+    bool reached = false;
+
+    #if USE_LIMIT_SWITCHES
+      if (targetFloor == 1 && digitalRead(LIMIT_SW_FLOOR1_PIN) == LOW) reached = true;
+      if (targetFloor == 2 && digitalRead(LIMIT_SW_FLOOR2_PIN) == LOW) reached = true;
+      if (targetFloor == 3 && digitalRead(LIMIT_SW_FLOOR3_PIN) == LOW) reached = true;
+    #endif
+
+    if (millis() - elevMoveStartTime >= elevMoveDuration) {
+      reached = true;
+    }
+
+    if (reached) {
+      stopElevatorMotor();
+      currentFloor = targetFloor;
+      elevState = ELEV_IDLE;
+      elevStatusDirty = true;
+      Serial.printf("✅ [Thang may] Da den Tang %d -> Dung motor\n", currentFloor);
+    }
+  }
+
+  // Đồng bộ trạng thái thang máy lên Firebase
+  if (elevStatusDirty && WiFi.status() == WL_CONNECTED && firebaseReadyFlag) {
+    const char *stStr = (elevState == ELEV_MOVING_UP) ? "moving_up"
+                      : (elevState == ELEV_MOVING_DOWN) ? "moving_down" : "idle";
+    bool ok1 = fbSetInt(PATH_ELEV_CURRENT, currentFloor);
+    bool ok2 = fbSetInt(PATH_ELEV_TARGET, targetFloor);
+    bool ok3 = fbSetString(PATH_ELEV_STATUS, stStr);
+    if (ok1 && ok2 && ok3) {
+      seenElevTarget = String(targetFloor);
+      elevStatusDirty = false;
     }
   }
 }
 
-uint8_t scanLcdAddress(uint8_t sdaPin, uint8_t sclPin) {
-  Wire.begin(sdaPin, sclPin);
-  Wire.setClockStretchLimit(1500);
-  // Ưu tiên 0x27, 0x3F, 0x26 trước, sau đó quét toàn bộ dải PCF8574 (0x20..0x27) & PCF8574A (0x38..0x3F)
-  const uint8_t priorityAddrs[] = {0x27, 0x3F, 0x26};
-  for (uint8_t addr : priorityAddrs) {
-    Wire.beginTransmission(addr);
-    if (Wire.endTransmission() == 0) return addr;
+// ==== 11. Xử lý Bàn phím 4x4 I2C (PCF8574 - 0x20): Chỉ nhập mật khẩu vào nhà ====
+void handleKey(char key) {
+  Serial.printf("⌨️ [Keypad] Phim: %c\n", key);
+
+  if (key == 'A') {
+    if (!changingPass) {
+      if (input == password) {
+        openMainDoor();
+      } else {
+        Serial.println(F("❌ [Cua chinh] Sai mat khau!"));
+        showMessage("Sai mat khau!", "Vui long thu lai", 1500);
+      }
+      input = "";
+    } else if (!confirmedOld) {
+      bool ok = (input == password);
+      input = "";
+      if (ok) {
+        confirmedOld = true;
+        showPrompt();
+      } else {
+        changingPass = false;
+        showMessage("Sai MK cu!", "Huy doi MK", 2000);
+      }
+    } else {
+      if (input.length() > 0) {
+        password = input;
+        changingPass = false;
+        confirmedOld = false;
+        input = "";
+        Serial.printf("✅ [Cua chinh] Da doi mat khau moi: %s\n", password.c_str());
+        showMessage("Doi MK thanh cong", "", 2000);
+      }
+    }
+  } else if (key == 'B') {
+    // Phím B không dùng điều khiển thang máy (chỉ dùng Web)
+    return;
+  } else if (key == 'C') {
+    input = "";
+    changingPass = false;
+    confirmedOld = false;
+    showPrompt();
+  } else if (key == 'D') {
+    changingPass = true;
+    confirmedOld = false;
+    input = "";
+    showPrompt();
+  } else {
+    input += key;
+    if (input.length() > 10) input.remove(0, 1);
+    showPrompt();
   }
-  for (uint8_t addr = 0x20; addr <= 0x3F; addr++) {
-    if (addr > 0x27 && addr < 0x38) continue;
-    Wire.beginTransmission(addr);
-    if (Wire.endTransmission() == 0) return addr;
-  }
-  return 0;
 }
 
-void initLcdI2C() {
+void readKeypad() {
+  if (!hasKeypad) return;
+  char key = kpad.getKey();
+  if (key && key != lastKey) {
+    lastKey = key;
+    handleKey(key);
+  } else if (!key) {
+    lastKey = 0;
+  }
+}
+
+// ==== 12. Khởi tạo Bus I2C (LCD 16x2 + Keypad PCF8574) ====
+bool checkI2CAddress(uint8_t addr) {
+  Wire.beginTransmission(addr);
+  return (Wire.endTransmission() == 0);
+}
+
+void initI2CDevices() {
   pinMode(I2C_SCL_PIN, INPUT_PULLUP);
   pinMode(I2C_SDA_PIN, INPUT_PULLUP);
   delay(5);
   if (digitalRead(I2C_SCL_PIN) == LOW || digitalRead(I2C_SDA_PIN) == LOW) {
-    Serial.println(F("⚠️ [I2C] Chan D1/D2 dang bi keo LOW -> Bo qua khoi tao LCD de tranh treo mach"));
+    Serial.println(F("⚠️ [I2C] Chan D1/D2 dang bi keo LOW -> Bo qua LCD & Keypad de tranh treo mach!"));
     return;
   }
 
-  // Thử chiều chuẩn (SDA = D2, SCL = D1), nếu không thấy thì thử đảo (SDA = D1, SCL = D2)
-  uint8_t found = scanLcdAddress(I2C_SDA_PIN, I2C_SCL_PIN);
-  if (found != 0) {
-    lcdAddr = found;
-    hasLcd = true;
-    Serial.printf("🖥️ [LCD 16x2] Da ket noi tai dia chi I2C 0x%02X (SDA=D2, SCL=D1)\n", lcdAddr);
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.setClockStretchLimit(1500);
+
+  // 1. Kiểm tra Keypad 4x4 PCF8574 (0x20)
+  if (checkI2CAddress(KEYPAD_I2C_ADDR)) {
+    hasKeypad = true;
+    kpad.begin();
+    Serial.printf("✅ [Keypad 4x4] Da ket noi tai I2C 0x%02X\n", KEYPAD_I2C_ADDR);
   } else {
-    found = scanLcdAddress(I2C_SCL_PIN, I2C_SDA_PIN);
-    if (found != 0) {
-      lcdAddr = found;
+    Serial.printf("ℹ️ [Keypad 4x4] Khong tim thay PCF8574 tai 0x%02X (bo qua Keypad)\n", KEYPAD_I2C_ADDR);
+  }
+
+  // 2. Tự động dò địa chỉ LCD 16x2 (0x27, 0x3F, 0x26)
+  const uint8_t lcdCandidates[] = {0x27, 0x3F, 0x26};
+  for (uint8_t addr : lcdCandidates) {
+    if (checkI2CAddress(addr)) {
+      lcdAddr = addr;
       hasLcd = true;
-      Serial.printf("🖥️ [LCD 16x2] Da ket noi tai dia chi I2C 0x%02X (phat hien cam dao SDA=D1, SCL=D2)\n", lcdAddr);
+      break;
     }
   }
 
@@ -493,17 +537,14 @@ void initLcdI2C() {
     lcd = new LiquidCrystal_I2C(lcdAddr, 16, 2);
     lcd->init();
     lcd->backlight();
-    lcd->setCursor(0, 0);
-    lcd->print("SmartHouse Tang1");
-    lcd->setCursor(0, 1);
-    lcd->print("Dang khoi dong..");
+    showPrompt();
+    Serial.printf("🖥️ [LCD 16x2] Da ket noi tai I2C 0x%02X\n", lcdAddr);
   } else {
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-    Serial.println(F("ℹ️ [LCD 16x2] Khong tim thay LCD I2C tren D1/D2 (bo qua hien thi LCD)"));
+    Serial.println(F("ℹ️ [LCD 16x2] Khong tim thay LCD I2C tren D1/D2 (bo qua LCD)"));
   }
 }
 
-// ==== 9. Kết nối Wi-Fi & Đồng bộ lệnh từ Firebase ====
+// ==== 13. Kết nối Wi-Fi & Đồng bộ Firebase ====
 void connectWiFi() {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
@@ -561,93 +602,60 @@ void pollFirebase() {
   if (millis() - lastPoll < POLL_MS) return;
   lastPoll = millis();
 
-  // Đồng bộ lần đầu: đọc vị trí cửa garage hiện tại để không tự chạy lại lệnh cũ
+  // Đồng bộ lần đầu: đọc tầng hiện tại của thang máy trên Firebase
   if (!initialSyncDone) {
     initialSyncDone = true;
-    Serial.println(F("[Firebase] Dang doc trang thai ban dau cua tung thiet bi..."));
-    String st;
-    if (fbGetString(PATH_GARAGE_STATUS, st, "closed")) {
-      if (st == "open") lastCommand = "open";
-      else if (st == "closed") lastCommand = "close";
-      Serial.printf("📥 [Firebase DOC] %s = %s (vi tri cua hien tai)\n", PATH_GARAGE_STATUS, st.c_str());
-    } else {
-      logReadError(PATH_GARAGE_STATUS);
+    Serial.println(F("[Firebase] Dang dong bo trang thai ban dau cho Tang 1.2..."));
+    int curFl = 1;
+    if (fbGetInt(PATH_ELEV_CURRENT, curFl, 1)) {
+      currentFloor = curFl;
+      targetFloor = curFl;
+      seenElevTarget = String(curFl);
+      Serial.printf("📥 [Firebase DOC] %s = %d (tang hien tai)\n", PATH_ELEV_CURRENT, currentFloor);
+      showPrompt();
     }
+    fbSetBool(PATH_DOOR_OPENED, doorOpen);
   }
 
-  // 1. Đọc đường dẫn Quạt (L298N OUTB): /home/floor_1/fan_room_1 (true = quạt chạy, false = tắt)
-  bool vFan;
-  if (fbGetBool(PATH_FAN, vFan, false)) {
-    logRead(PATH_FAN, seenFan, vFan ? "true" : "false");
-    if (vFan != fanOn) {
-      setFan(vFan);
-      updateLcdDisplay();
-    }
-  } else {
-    logReadError(PATH_FAN);
-  }
-
-  // 2. Đọc đường dẫn Dãy đèn LED (gộp thành 1): /home/floor_1/light_room_1 (true = sáng, false = tắt)
-  bool vLed;
-  if (fbGetBool(PATH_LED, vLed, false)) {
-    logRead(PATH_LED, seenLed, vLed ? "true" : "false");
-    setLedStrip(vLed);
-  } else {
-    logReadError(PATH_LED);
-  }
-
-  // 3. Đọc công tắc bật/tắt chế độ chống trộm: /home/floor_1/alarm_enabled_1
-  bool vAlarmEn;
-  if (fbGetBool(PATH_ALARM_ENABLED, vAlarmEn, true)) {
-    logRead(PATH_ALARM_ENABLED, seenAlarmEn, vAlarmEn ? "true" : "false");
-    if (vAlarmEn != alarmEnabled) {
-      alarmEnabled = vAlarmEn;
-      Serial.printf("🛡️ [Chong trom - %s] -> %s\n", PATH_ALARM_ENABLED, alarmEnabled ? "BAT CHE DO AN NINH" : "TAT CHE DO AN NINH");
-      updateLcdDisplay();
-    }
-  } else {
-    logReadError(PATH_ALARM_ENABLED);
-  }
-
-  // 4. Đọc đường dẫn Cửa Garage (L298N OUTA): /home/floor_1/garage/command
-  if (!garageRunning) {
-    String cmd;
-    if (fbGetString(PATH_GARAGE_CMD, cmd, "close")) {
-      logRead(PATH_GARAGE_CMD, seenGarage, cmd);
-      if ((cmd == "open" || cmd == "close") && cmd != lastCommand) {
-        startGarage(cmd);
+  // Đọc lệnh gọi tầng Thang máy từ Web: /home/elevator/target_floor
+  if (elevState == ELEV_IDLE) {
+    int webTargetFloor = currentFloor;
+    if (fbGetInt(PATH_ELEV_TARGET, webTargetFloor, currentFloor)) {
+      logRead(PATH_ELEV_TARGET, seenElevTarget, String(webTargetFloor));
+      if (webTargetFloor != currentFloor) {
+        moveElevatorToFloor(webTargetFloor);
       }
     } else {
-      logReadError(PATH_GARAGE_CMD);
+      logReadError(PATH_ELEV_TARGET);
     }
   }
 }
 
-// ==== 10. Setup & Loop ====
+// ==== 14. Setup & Loop ====
 void setup() {
   Serial.begin(115200);
   delay(200);
-  Serial.println(F("\n========================================================"));
-  Serial.println(F("   SMARTHOUSE V4 - TANG 1 THONG NHAT 5 THIET BI NGOAI VI"));
-  Serial.println(F("========================================================"));
+  Serial.println(F("\n============================================================"));
+  Serial.println(F("   SMARTHOUSE V4 - TANG 1.2: CUA CHINH & THANG MAY          "));
+  Serial.println(F("============================================================"));
 
-  // Khởi tạo L298N: Kênh A (Garage: D5, D6) & Kênh B (Quạt: D7)
-  pinMode(GARAGE_IN1, OUTPUT);
-  pinMode(GARAGE_IN2, OUTPUT);
-  stopGarage();
-  pinMode(FAN_PIN, OUTPUT);
-  digitalWrite(FAN_PIN, LOW);
+  // Khởi tạo L298N điều khiển động cơ Thang máy (D5, D6)
+  pinMode(ELEV_IN1_PIN, OUTPUT);
+  pinMode(ELEV_IN2_PIN, OUTPUT);
+  stopElevatorMotor();
 
-  // Khởi tạo Dãy đèn LED trong nhà (D0)
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
+  #if USE_LIMIT_SWITCHES
+    pinMode(LIMIT_SW_FLOOR1_PIN, INPUT_PULLUP);
+    pinMode(LIMIT_SW_FLOOR2_PIN, INPUT_PULLUP);
+    pinMode(LIMIT_SW_FLOOR3_PIN, INPUT_PULLUP);
+  #endif
 
-  // Khởi tạo Cảm biến chống trộm (D4)
-  pinMode(ANTITHEFT_PIN, INPUT_PULLUP);
+  // Khởi tạo Servo cửa chính (D4)
+  doorServo.attach(SERVO_DOOR_PIN);
+  doorServo.write(SERVO_CLOSED_ANGLE);
 
-  // Khởi tạo Cảm biến DHT11 (D3) & Màn hình LCD 16x2 I2C (D1/D2)
-  dht.begin();
-  initLcdI2C();
+  // Khởi tạo LCD 16x2 I2C & Keypad 4x4 I2C trên D1/D2
+  initI2CDevices();
 
   connectWiFi();
   if (WiFi.status() == WL_CONNECTED) {
@@ -656,8 +664,12 @@ void setup() {
 }
 
 void loop() {
-  pollFirebase();          // Nhận lệnh Quạt, Dãy đèn LED, Chống trộm, Cửa Garage từ Firebase
-  runGarage();             // Dừng motor Garage sau 300ms & đồng bộ trạng thái
-  handleAntiTheftSensor(); // Đọc cảm biến chống trộm (D4) & đẩy cảnh báo lên Firebase
-  handleClimateAndLcd();   // Đọc DHT11 (D3), hiển thị LCD (D1/D2) & đẩy lên Firebase
+  readKeypad();     // Quét phím bấm mật khẩu mở Cửa chính
+  handleMainDoor(); // Tự động đóng cửa chính sau 3 giây & đồng bộ Firebase
+  handleElevator(); // Điều khiển motor Thang máy L298N & đồng bộ tầng lên Firebase
+  pollFirebase();   // Nhận lệnh gọi Thang máy từ Web Firebase
+
+  if (lcdRestoreAt != 0 && !doorOpen && (long)(millis() - lcdRestoreAt) >= 0) {
+    showPrompt();
+  }
 }
