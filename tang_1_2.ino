@@ -1,28 +1,36 @@
 /*
  * ============================================================================
- * SMARTHOUSE V4 - FIRMWARE TẦNG 1.2 (ESP8266 NODEMCU)
- * QUẢN LÝ: CỬA CHÍNH (KEYPAD 4x4 + LCD 16x2 + SERVO) & THANG MÁY (L298N)
+ * FILE: tang_1_2.ino
+ * MẠCH ESP8266 SỐ 2 (TẦNG 1.2) - QUẢN LÝ CỬA CHÍNH & HỆ THỐNG THANG MÁY
  * ============================================================================
- * Danh sách thiết bị ngoại vi trên mạch Tầng 1.2:
- *   1. Bàn phím ma trận 4x4 I2C (PCF8574 - địa chỉ 0x20):
- *      - Nối chung bus I2C: D1 (GPIO5 - SCL), D2 (GPIO4 - SDA)
- *      - Chỉ dùng để nhập mật khẩu mở Cửa chính vào nhà (mặc định "111#"):
- *        + Phím 0..9, *, #: nhập mật khẩu
- *        + Phím A: xác nhận mở Cửa chính (hoặc xác nhận khi đổi mật khẩu)
- *        + Phím C: xóa mật khẩu đang nhập
- *        + Phím D: đổi mật khẩu cửa chính
- *   2. Màn hình LCD 16x2 I2C (địa chỉ 0x27 / 0x3F / 0x26):
- *      - Nối chung bus I2C: D1 (SCL), D2 (SDA)
- *      - Hiển thị giao diện nhập mật khẩu và trạng thái Cửa chính
- *   3. Động cơ Servo SG90 Cửa chính:
- *      - Chân điều khiển: D4 (GPIO2)
- *      - Khi mở cửa: giữ mở 3 giây rồi tự đóng, đồng bộ lên "/home/floor_1/door_opened_1"
- *        và tự động bật đèn tầng 1 ("/home/floor_1/light_room_1" = true)
- *   4. Hệ thống Thang máy 3 tầng (Động cơ DC qua mạch cầu H L298N - chỉ điều khiển qua Web):
- *      - Chân D5 (GPIO14) -> L298N IN1 (chiều đi LÊN)
- *      - Chân D6 (GPIO12) -> L298N IN2 (chiều đi XUỐNG) (giữ jumper ENA trên L298N)
- *      - Chỉ nhận lệnh gọi tầng (1, 2, 3) từ Web qua Firebase "/home/elevator/target_floor",
- *        cập nhật tầng hiện tại lên "/home/elevator/current_floor" và "/home/elevator/status"
+ * 1. MỤC ĐÍCH:
+ *    Vi điều khiển ESP8266 NodeMCU phụ trách cụm khóa mật khẩu Cửa chính Tầng 1
+ *    (Keypad 4x4 + LCD 16x2 + Servo SG90) và Động cơ Thang máy 3 tầng (L298N).
+ *
+ * 2. DANH SÁCH THIẾT BỊ & SƠ ĐỒ ĐẤU NỐI CHÂN (ESP8266 NODEMCU):
+ *    +-----------------------------------------------------------------------+
+ *    | Chân ESP8266 | GPIO   | Thiết bị ngoại vi       | Chân trên Module    |
+ *    +--------------+--------+-------------------------+---------------------+
+ *    | D1           | GPIO5  | LCD 16x2 + Keypad 4x4   | SCL (Bus I2C chung) |
+ *    | D2           | GPIO4  | LCD 16x2 + Keypad 4x4   | SDA (Bus I2C chung) |
+ *    | D4           | GPIO2  | Servo SG90 Cửa chính    | Dây Cam/Vàng (PWM)  |
+ *    | D5           | GPIO14 | Động cơ Thang máy       | IN1 (L298N - Đi lên)|
+ *    | D6           | GPIO12 | Động cơ Thang máy       | IN2 (L298N - Xuống) |
+ *    +-----------------------------------------------------------------------+
+ *    * Lưu ý đấu nối & vận hành:
+ *      - Keypad 4x4 (PCF8574 địa chỉ 0x20) chỉ dùng nhập mật khẩu mở Cửa chính
+ *        vào nhà tại chỗ (mặc định "111#", nhấn A mở cửa, C xóa, D đổi mật khẩu).
+ *      - Thang máy đấu vào OUT1 & OUT2 của L298N (giữ Jumper ENA), chỉ điều khiển
+ *        gọi tầng từ giao diện Web thông qua Firebase.
+ *      - Servo SG90: dây Cam/Vàng nối D4, dây Đỏ nối cổng 5V của L298N (hoặc VIN),
+ *        dây Nâu/Đen nối GND chung.
+ *
+ * 3. ĐƯỜNG DẪN ĐỒNG BỘ FIREBASE REALTIME DATABASE:
+ *    - [door1]    /home/floor_1/door_opened_1   (Ghi bool: true khi cửa mở 3s, false khi đóng)
+ *    - [light1]   /home/floor_1/light_room_1    (Ghi bool: true để tự bật đèn Tầng 1 khi mở cửa)
+ *    - [elevator] /home/elevator/target_floor   (Đọc int: Tầng đích 1, 2, 3 từ Web)
+ *                 /home/elevator/current_floor  (Ghi int: Tầng hiện tại 1, 2, 3)
+ *                 /home/elevator/status         (Ghi string: "idle", "moving_up", "moving_down")
  * ============================================================================
  */
 

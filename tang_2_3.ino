@@ -1,34 +1,36 @@
 /*
  * ============================================================================
- * SMARTHOUSE V4 - FIRMWARE GỘP TẦNG 2 & TẦNG 3 TRÊN 1 ESP8266 NODEMCU
+ * FILE: tang_2_3.ino
+ * MẠCH ESP8266 SỐ 3 (TẦNG 2 & 3) - GỘP NGOẠI VI TẦNG 2 VÀ TẦNG 3 TRÊN 1 ESP8266
  * ============================================================================
- * Danh sách thiết bị ngoại vi Tầng 2 & Tầng 3 đã gộp chung vào 1 mạch ESP8266:
+ * 1. MỤC ĐÍCH:
+ *    Vi điều khiển ESP8266 NodeMCU tích hợp toàn bộ thiết bị ngoại vi của cả
+ *    Tầng 2 (Chiếu sáng, Báo cháy khí Gas/Khói MQ-2, Còi Buzzer, Màn hình OLED)
+ *    và Tầng 3 (Khóa cửa vân tay AS608 + Động cơ Servo SG90).
  *
- *   [1] Đèn LED Tầng 2 (light2):
- *       - Chân điều khiển: D6 (GPIO12)
- *       - Nút nhấn vật lý bật/tắt tại chỗ (tùy chọn): D5 (GPIO14, nối GND)
- *       - Firebase: đọc/ghi "/home/floor_2/light_room_2" (true = sáng, false = tắt)
+ * 2. DANH SÁCH THIẾT BỊ & SƠ ĐỒ ĐẤU NỐI CHÂN (ESP8266 NODEMCU):
+ *    +-----------------------------------------------------------------------+
+ *    | Chân ESP8266 | GPIO   | Thiết bị ngoại vi       | Chân trên Module    |
+ *    +--------------+--------+-------------------------+---------------------+
+ *    | A0           | ADC0   | [Tầng 2] Cảm biến MQ-2  | AO (Analog Output)  |
+ *    | D1           | GPIO5  | [Chung]  Còi Buzzer     | Chân Dương (+) Còi  |
+ *    | D2           | GPIO4  | [Tầng 2] OLED 0.96" I2C | SDA (0x3C, tùy chọn)|
+ *    | D3           | GPIO0  | [Tầng 2] OLED 0.96" I2C | SCL (0x3C, tùy chọn)|
+ *    | D4           | GPIO2  | [Tầng 3] Servo Cửa T3   | Dây Cam/Vàng (PWM)  |
+ *    | D5           | GPIO14 | [Tầng 2] Nút nhấn đèn   | Nút nhấn (nối GND)  |
+ *    | D6           | GPIO12 | [Tầng 2] Đèn LED tầng 2 | SIG/IN (MOSFET) / + |
+ *    | D7           | GPIO13 | [Tầng 3] Vân tay AS608  | TX của cảm biến     |
+ *    | D8           | GPIO15 | [Tầng 3] Vân tay AS608  | RX của cảm biến     |
+ *    +-----------------------------------------------------------------------+
+ *    * Mẹo đăng ký vân tay AS608:
+ *      Mở Serial Monitor (115200 baud) và gõ lệnh "ENROLL <id>" (ví dụ: ENROLL 1).
  *
- *   [2] Hệ thống Báo cháy khí Gas/Khói MQ-2 Tầng 2 (smoke):
- *       - Chân đọc mức khói Analog: A0 (0..1023, ngưỡng báo động = 120)
- *       - Còi Buzzer báo động: D1 (GPIO5) (dùng chung cho cả báo cháy & báo vân tay)
- *       - Màn hình OLED 0.96" I2C (0x3C, tùy chọn): SDA = D2 (GPIO4), SCL = D3 (GPIO0)
- *       - Firebase:
- *         + Ghi mức khói:       "/home/floor_2/smoke_level_2" (int)
- *         + Ghi trạng thái cháy: "/home/floor_2/smoke_detected_2" (bool)
- *         + Đọc lệnh tắt còi:   "/home/floor_2/buzzer_mute_2" (true = tắt tiếng còi)
- *
- *   [3] Khóa cửa vân tay AS608 + Servo Tầng 3 (door3):
- *       - Cảm biến vân tay AS608 (UART 57600 baud):
- *         + D7 (GPIO13 - SoftwareSerial RX) nối chân TX của AS608
- *         + D8 (GPIO15 - SoftwareSerial TX) nối chân RX của AS608
- *       - Động cơ Servo SG90 mở cửa: D4 (GPIO2) (mở 2 giây rồi tự đóng)
- *       - Firebase: ghi trạng thái cửa "/home/door_status" (true = mở, false = đóng)
- *       - Hỗ trợ đăng ký vân tay mới qua Serial Monitor: gõ "ENROLL <1..127>"
- *
- * Giao tiếp Firebase:
- *   Dùng trực tiếp BearSSL::WiFiClientSecure + ESP8266HTTPClient (REST API GET/PUT)
- *   giúp ESP8266 hoạt động ổn định, không bị tràn RAM hay lỗi mConnectBasicClient.
+ * 3. ĐƯỜNG DẪN ĐỒNG BỘ FIREBASE REALTIME DATABASE:
+ *    - [light2] /home/floor_2/light_room_2     (Đọc/Ghi bool: true = Sáng, false = Tắt)
+ *    - [smoke]  /home/floor_2/smoke_level_2    (Ghi int: Giá trị Analog MQ-2 từ 0..1023)
+ *               /home/floor_2/smoke_detected_2 (Ghi bool: true khi vượt ngưỡng khói 120)
+ *               /home/floor_2/buzzer_mute_2    (Đọc bool: true = Tắt tiếng còi từ Web)
+ *    - [door3]  /home/door_status              (Ghi bool: true khi mở cửa vân tay 2s)
  * ============================================================================
  */
 

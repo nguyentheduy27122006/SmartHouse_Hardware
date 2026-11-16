@@ -1,30 +1,40 @@
 /*
  * ============================================================================
- * SMARTHOUSE V4 - FIRMWARE THỐNG NHẤT TẦNG 1 (ESP8266 NODEMCU)
+ * FILE: tang_1_1.ino
+ * MẠCH ESP8266 SỐ 1 (TẦNG 1.1) - QUẢN LÝ 5 THIẾT BỊ NGOẠI VI TẦNG 1
  * ============================================================================
- * Danh sách 5 thiết bị ngoại vi Tầng 1 đã thống nhất theo đúng cấu trúc Firebase:
- *   1. Cửa Garage (L298N kênh A - OUT1/OUT2):
- *      - Chân D5 (GPIO14) -> L298N IN1, D6 (GPIO12) -> L298N IN2 (giữ jumper ENA)
- *      - Firebase: đọc lệnh "/home/floor_1/garage/command" ("open" / "close"),
- *                  ghi trạng thái "/home/floor_1/garage/status" ("open" / "closed")
- *   2. Cảm biến nhiệt độ, độ ẩm DHT11 & Màn hình LCD 16x2 I2C:
- *      - DHT11 nối chân D3 (GPIO0)
- *      - LCD 16x2 I2C nối D1 (GPIO5 - SCL), D2 (GPIO4 - SDA) (tự dò địa chỉ 0x27 / 0x3F / 0x26)
- *      - Firebase: ghi "/home/floor_1/temperature_1" (°C) và "/home/floor_1/humidity_1" (%)
- *   3. Dãy đèn LED trong nhà (qua MOSFET):
- *      - Chân D0 (GPIO16) điều khiển chung dãy đèn LED
- *      - Firebase: đọc "/home/floor_1/light_room_1" (true = sáng, false = tắt)
- *   4. Quạt thông qua OUTB (OUT3/OUT4) của L298N chung với cửa Garage:
- *      - Chân D7 (GPIO13) -> L298N IN3 (IN4 nối GND, giữ jumper ENB)
- *      - Firebase: đọc "/home/floor_1/fan_room_1" (true = quạt chạy, false = tắt)
- *   5. Báo trộm nhà xe (PIR / Hồng ngoại):
- *      - Chân D4 (GPIO2) đọc tín hiệu Digital
- *      - Firebase: đọc "/home/floor_1/alarm_enabled_1" (bật/tắt chế độ chống trộm),
- *                  ghi "/home/floor_1/alarm_triggered_1" (true = báo động khi có trộm)
+ * 1. MỤC ĐÍCH:
+ *    Vi điều khiển ESP8266 NodeMCU phụ trách toàn bộ cụm ngoại vi nhà xe,
+ *    chiếu sáng, quạt làm mát, giám sát nhiệt độ/độ ẩm và chống trộm Tầng 1.
  *
- * Giao tiếp Firebase:
- *   Dùng trực tiếp BearSSL::WiFiClientSecure + ESP8266HTTPClient (REST API GET/PUT)
- *   giúp ESP8266 hoạt động ổn định, không bị tràn RAM hay lỗi mConnectBasicClient.
+ * 2. DANH SÁCH THIẾT BỊ & SƠ ĐỒ ĐẤU NỐI CHÂN (ESP8266 NODEMCU):
+ *    +-----------------------------------------------------------------------+
+ *    | Chân ESP8266 | GPIO   | Thiết bị ngoại vi       | Chân trên Module    |
+ *    +--------------+--------+-------------------------+---------------------+
+ *    | D0           | GPIO16 | [3] Dãy đèn LED tầng 1  | SIG/IN (MOSFET) / + |
+ *    | D1           | GPIO5  | [2] Màn hình LCD 16x2   | SCL (I2C)           |
+ *    | D2           | GPIO4  | [2] Màn hình LCD 16x2   | SDA (I2C)           |
+ *    | D3           | GPIO0  | [2] Cảm biến DHT11      | OUT / DATA / S      |
+ *    | D4           | GPIO2  | [5] Báo trộm nhà xe     | DO / OUT (Digital)  |
+ *    | D5           | GPIO14 | [1] Cửa cuốn Garage     | IN1 (L298N - OUTA)  |
+ *    | D6           | GPIO12 | [1] Cửa cuốn Garage     | IN2 (L298N - OUTA)  |
+ *    | D7           | GPIO13 | [4] Quạt tầng 1         | IN3 (L298N - OUTB)  |
+ *    +-----------------------------------------------------------------------+
+ *    * Lưu ý nguồn & L298N:
+ *      - Cửa Garage đấu vào OUT1 & OUT2 (kênh A); Quạt đấu vào OUT3 & OUT4 (kênh B).
+ *      - Chân IN4 của L298N nối GND; giữ nguyên Jumper ENA và ENB trên L298N.
+ *      - Nguồn 2 pin 3.7V cấp vào cổng 12V & GND của L298N; nối chung GND với ESP8266
+ *        (bỏ trống cổng 5V của L298N khi ESP8266 đang cắm cáp USB).
+ *
+ * 3. ĐƯỜNG DẪN ĐỒNG BỘ FIREBASE REALTIME DATABASE:
+ *    - [light1]  /home/floor_1/light_room_1       (Đọc bool: true = Bật đèn LED, false = Tắt)
+ *    - [fan1]    /home/floor_1/fan_room_1         (Đọc bool: true = Bật quạt, false = Tắt)
+ *    - [garage]  /home/floor_1/garage/command     (Đọc string: "open" / "close")
+ *                /home/floor_1/garage/status      (Ghi string: "open" / "closed")
+ *    - [alarm]   /home/floor_1/alarm_enabled_1    (Đọc bool: Bật/tắt chế độ chống trộm từ Web)
+ *                /home/floor_1/alarm_triggered_1  (Ghi bool: true khi phát hiện trộm)
+ *    - [climate] /home/floor_1/temperature_1      (Ghi float: Nhiệt độ °C từ DHT11)
+ *                /home/floor_1/humidity_1         (Ghi float: Độ ẩm % từ DHT11)
  * ============================================================================
  */
 
