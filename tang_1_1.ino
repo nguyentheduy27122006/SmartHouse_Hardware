@@ -434,7 +434,7 @@ void handleClimateAndLcd() {
     return;
   }
 
-  bool changedLocal = isnan(currentTemp) || abs(t - currentTemp) >= 0.1f || abs(h - currentHumi) >= 0.5f;
+  bool changedLocal = isnan(currentTemp) || abs(t - currentTemp) >= 0.1f || abs(h - currentHumi) >= 0.1f;
   currentTemp = t;
   currentHumi = h;
 

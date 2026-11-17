@@ -88,8 +88,8 @@
 #define SERVO_OPEN_ANGLE      20    // Góc Servo khi mở cửa chính
 #define DOOR_OPEN_MS          3000  // Thời gian giữ mở cửa chính (3000ms = 3 giây)
 
-#define ELEV_SPEED_UP         180   // Tốc độ PWM (0..255) khi thang máy đi lên
-#define ELEV_SPEED_DOWN       150   // Tốc độ PWM (0..255) khi thang máy đi xuống
+#define ELEV_SPEED_UP         200   // Tốc độ PWM (0..255) khi thang máy đi lên (khớp thang_may.ino gốc: 200)
+#define ELEV_SPEED_DOWN       70    // Tốc độ PWM (0..255) khi thang máy đi xuống (khớp thang_may.ino gốc: 70)
 #define ELEV_TIME_PER_FLOOR_MS 1800 // Thời gian di chuyển qua mỗi tầng (1.8 giây / tầng)
 #define POLL_MS               500   // Chu kỳ đồng bộ Firebase (500ms)
 

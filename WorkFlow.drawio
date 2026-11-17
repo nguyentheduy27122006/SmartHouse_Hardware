@@ -1,463 +1,166 @@
-<mxfile host="Electron">
-  <diagram name="Page-1" id="RFWho1IwH4TwXBPRBtdG">
-    <mxGraphModel dx="2735" dy="1121" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+<mxfile host="Electron" modified="2026-11-17T02:55:00.000Z" agent="Antigravity" version="24.0.0" type="device">
+  <diagram name="1. Workflow Hệ Thống (SmartHouse V4)" id="workflow-v4">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <UserObject label="" plantUmlData="{&#xa;  &quot;data&quot;: &quot;@startuml\nskinparam linetype ortho\nskinparam defaultFontName Arial\nskinparam padding 10\nskinparam nodesep 25\nskinparam ranksep 50\nskinparam roundcorner 12\nskinparam shadowing false\nskinparam ArrowColor #455A64\nskinparam ArrowThickness 1.5\n\n&#39; BẢNG MÀU HIỆN ĐẠI (PASTEL)\nskinparam component {\n    BackgroundColor&lt;&lt;App&gt;&gt; #E3F2FD\n    BorderColor&lt;&lt;App&gt;&gt; #2196F3\n    FontColor&lt;&lt;App&gt;&gt; #0D47A1\n    \n    BackgroundColor&lt;&lt;MCU&gt;&gt; #FFF3E0\n    BorderColor&lt;&lt;MCU&gt;&gt; #FF9800\n    FontColor&lt;&lt;MCU&gt;&gt; #E65100\n    \n    BackgroundColor&lt;&lt;Sensor&gt;&gt; #E8F5E9\n    BorderColor&lt;&lt;Sensor&gt;&gt; #4CAF50\n    FontColor&lt;&lt;Sensor&gt;&gt; #1B5E20\n    \n    BackgroundColor&lt;&lt;Actuator&gt;&gt; #FCE4EC\n    BorderColor&lt;&lt;Actuator&gt;&gt; #E91E63\n    FontColor&lt;&lt;Actuator&gt;&gt; #880E4F\n}\n\nskinparam database {\n    BackgroundColor #F3E5F5\n    BorderColor #9C27B0\n    FontColor #4A148C\n}\n\nskinparam actor {\n    BackgroundColor #F5F5F5\n    BorderColor #607D8B\n    FontColor #37474F\n}\n\nskinparam package {\n    BackgroundColor #FAFAFA\n    BorderColor #CFD8DC\n    FontColor #263238\n    FontStyle bold\n}\n\n&#39; LỚP GIAO TIẾP &amp; ĐIỀU KHIỂN (Xếp dọc ở trung tâm)\nactor \&quot;Người dùng\&quot; as User\ncomponent \&quot;Giao diện Web\\n(Next.js)\&quot; &lt;&lt;App&gt;&gt; as Web\ndatabase \&quot;Firebase\\nRealtime Database\&quot; as DB\ncomponent \&quot;Bộ Điều khiển Trung tâm\\n(ESP8266 NodeMCU)\&quot; &lt;&lt;MCU&gt;&gt; as ESP\n\nUser -down-&gt; Web : Tương tác (Web/Mobile)\nWeb -down-&gt; DB : Đồng bộ (HTTP/Websocket)\nDB -down-&gt; ESP : Truyền nhận (Wi-Fi)\n\n&#39; CÁC TẦNG THIẾT BỊ NGOẠI VI BÊN DƯỚI\npackage \&quot;Tầng 1: An ninh &amp; Giám sát\&quot; as T1 {\n    component \&quot;Cảm biến Hồng ngoại\&quot; &lt;&lt;Sensor&gt;&gt; as IR\n    component \&quot;Cảm biến Nhiệt/Ẩm\&quot; &lt;&lt;Sensor&gt;&gt; as DHT11\n    component \&quot;Bàn phím 4x4\&quot; &lt;&lt;Sensor&gt;&gt; as Keypad\n    component \&quot;Còi &amp; LCD 16x2\&quot; &lt;&lt;Actuator&gt;&gt; as Out1\n    component \&quot;Động cơ Cửa\&quot; &lt;&lt;Actuator&gt;&gt; as Door\n}\n\npackage \&quot;Tầng 2: Báo cháy &amp; Sinh hoạt\&quot; as T2 {\n    component \&quot;Khí gas/Khói (MQ-2)\&quot; &lt;&lt;Sensor&gt;&gt; as MQ2\n    component \&quot;Còi cháy &amp; Đèn LED\&quot; &lt;&lt;Actuator&gt;&gt; as Out2\n}\n\npackage \&quot;Tầng 3 &amp; Thang máy\&quot; as T3 {\n    component \&quot;Cảm biến Vân tay\&quot; &lt;&lt;Sensor&gt;&gt; as Finger\n    component \&quot;Khóa cửa T3\&quot; &lt;&lt;Actuator&gt;&gt; as Out3\n    \n    component \&quot;Bộ ĐK Thang máy\\n(Arduino UNO)\&quot; &lt;&lt;MCU&gt;&gt; as Ard\n    component \&quot;Nút gọi &amp; Hành trình\&quot; &lt;&lt;Sensor&gt;&gt; as ElevSen\n    component \&quot;Động cơ (L298N)\&quot; &lt;&lt;Actuator&gt;&gt; as ElevMotor\n}\n\n&#39; Dàn đều các khối ngang nhau để không bị lệch\nT1 -[hidden]right-&gt; T2\nT2 -[hidden]right-&gt; T3\n\n&#39; ĐIỀU HƯỚNG MŨI TÊN (Giúp đường thẳng tắp, không đứt đoạn)\n&#39; Tầng 1\nIR -up-&gt; ESP\nDHT11 -up-&gt; ESP\nKeypad -up-&gt; ESP\nESP -down-&gt; Out1\nESP -down-&gt; Door\n\n&#39; Tầng 2\nMQ2 -up-&gt; ESP\nESP -down-&gt; Out2\n\n&#39; Tầng 3\nFinger -up-&gt; ESP\nESP -down-&gt; Out3\n\n&#39; Nội bộ hệ thống thang máy\nElevSen -up-&gt; Ard\nArd -down-&gt; ElevMotor\n\n@enduml&quot;,&#xa;  &quot;config&quot;: null&#xa;}" id="ETSnzLahC6dEKFg1kJ80-53">
-          <mxCell connectable="0" parent="1" style="group;transparentBounds=1;editIcon=1;lockedGroup=0;groupPadding=10;" vertex="1">
-            <mxGeometry as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="&lt;font style=&quot;font-size: 10px;&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;Tầng 3 &amp;amp; Thang máy&lt;/font&gt;" plantUmlId="c_41" plantUmlBaseStyle="shape=folder;tabWidth=142;tabHeight=23;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CFD8DC;strokeWidth=1.5;fontSize=14;fontStyle=1;fontColor=#263238;align=left;verticalAlign=top;spacingLeft=2;spacingTop=-4;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontFamily=Arial;" plantUmlBaseValue="Tầng 3 &amp;amp; Thang máy" id="ETSnzLahC6dEKFg1kJ80-95">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="shape=folder;tabWidth=142;tabHeight=23;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CFD8DC;strokeWidth=1.5;fontSize=14;fontStyle=1;fontColor=#263238;align=left;verticalAlign=top;spacingLeft=2;spacingTop=-4;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontFamily=Arial;container=0;" vertex="1">
-            <mxGeometry height="217" width="626.5" x="920" y="418" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="&lt;font style=&quot;font-size: 10px;&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;Tầng 2: Báo cháy &amp;amp; Sinh hoạt&lt;/font&gt;" plantUmlId="c_32" plantUmlBaseStyle="shape=folder;tabWidth=198;tabHeight=23;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CFD8DC;strokeWidth=1.5;fontSize=14;fontStyle=1;fontColor=#263238;align=left;verticalAlign=top;spacingLeft=2;spacingTop=-4;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontFamily=Arial;" plantUmlBaseValue="Tầng 2: Báo cháy &amp;amp; Sinh hoạt" id="ETSnzLahC6dEKFg1kJ80-86">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="shape=folder;tabWidth=198;tabHeight=23;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CFD8DC;strokeWidth=1.5;fontSize=14;fontStyle=1;fontColor=#263238;align=left;verticalAlign=top;spacingLeft=2;spacingTop=-4;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontFamily=Arial;container=0;" vertex="1">
-            <mxGeometry height="100" width="401" x="919.9999999999999" y="258" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="n_0" plantUmlBaseStyle="shape=umlActor;html=1;fillColor=#F5F5F5;strokeColor=#607D8B;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontColor=#37474F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-54">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="shape=umlActor;html=1;fillColor=#F5F5F5;strokeColor=#607D8B;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontColor=#37474F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="80" width="40" x="-0.004444444444402507" y="280" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="Người dùng" plantUmlId="cap_1" plantUmlBaseStyle="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=14;whiteSpace=wrap;fontColor=#37474F;fontFamily=Arial;part=1;" plantUmlBaseValue="Người dùng" id="ETSnzLahC6dEKFg1kJ80-55">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-54" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;fontSize=14;whiteSpace=wrap;fontColor=#37474F;fontFamily=Arial;part=1;" vertex="1">
-            <mxGeometry height="32.592592592592574" width="77" x="-18.5" y="79.99999999999996" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="«App»&#xa;Giao diện Web&#xa;(Next.js)" plantUmlId="n_2" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E3F2FD;strokeColor=#2196F3;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" plantUmlBaseValue="«App»&#xa;Giao diện Web&#xa;(Next.js)" id="ETSnzLahC6dEKFg1kJ80-56">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E3F2FD;strokeColor=#2196F3;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="80" width="120" x="119.9955555555556" y="280" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_3" plantUmlBaseStyle="fillColor=#E3F2FD;strokeColor=#2196F3;part=1;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-57">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-56" style="fillColor=#E3F2FD;strokeColor=#2196F3;part=1;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_4" plantUmlBaseStyle="fillColor=#E3F2FD;strokeColor=#2196F3;part=1;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-58">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-56" style="fillColor=#E3F2FD;strokeColor=#2196F3;part=1;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_5" plantUmlBaseStyle="fillColor=#E3F2FD;strokeColor=#2196F3;part=1;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-59">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-56" style="fillColor=#E3F2FD;strokeColor=#2196F3;part=1;shadow=0;fontColor=#0D47A1;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="Firebase&#xa;Realtime Database" plantUmlId="n_6" plantUmlBaseStyle="shape=cylinder3;size=10;boundedLbl=1;backgroundOutline=1;fillColor=#F3E5F5;strokeColor=#9C27B0;fontSize=14;whiteSpace=wrap;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontColor=#4A148C;fontFamily=Arial;" plantUmlBaseValue="Firebase&#xa;Realtime Database" id="ETSnzLahC6dEKFg1kJ80-60">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="shape=cylinder3;size=10;boundedLbl=1;backgroundOutline=1;fillColor=#F3E5F5;strokeColor=#9C27B0;fontSize=14;whiteSpace=wrap;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontColor=#4A148C;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="80" width="138" x="320" y="280" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <mxCell id="ETSnzLahC6dEKFg1kJ80-137" edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=11.5;defaultLabelBackgroundColor=page;entryPerimeter=0;" target="ETSnzLahC6dEKFg1kJ80-86">
-          <mxGeometry relative="1" x="0.19" as="geometry" />
+
+        <!-- LỚP TRUNG TÂM: NGƯỜI DÙNG -> WEB -> FIREBASE -->
+        <mxCell id="user" value="Người dùng&#xa;(Web / Điện thoại / Tại nhà)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#F5F5F5;strokeColor=#607D8B;fontColor=#263238;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="780" y="30" width="40" height="70" as="geometry" />
         </mxCell>
-        <UserObject label="«MCU»&#xa;Bộ Điều khiển Trung tâm&#xa;(ESP8266 NodeMCU)" plantUmlId="n_7" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="«MCU»&#xa;Bộ Điều khiển Trung tâm&#xa;(ESP8266 NodeMCU)" id="ETSnzLahC6dEKFg1kJ80-61">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#E65100;fontFamily=Arial;align=center;" vertex="1">
-            <mxGeometry height="78" width="188" x="651.9955555555555" y="280" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_8" plantUmlBaseStyle="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-62">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-61" style="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_9" plantUmlBaseStyle="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-63">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-61" style="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_10" plantUmlBaseStyle="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-64">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-61" style="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <mxCell id="ETSnzLahC6dEKFg1kJ80-140" edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;defaultLabelBackgroundColor=page;">
-          <mxGeometry relative="1" x="-0.1362" as="geometry">
-            <Array as="points">
-              <mxPoint x="880" y="319" />
-              <mxPoint x="880" y="540" />
-            </Array>
-            <mxPoint x="920" y="540" as="targetPoint" />
-          </mxGeometry>
+
+        <mxCell id="web" value="«Web Dashboard»&#xa;Giao diện Điều khiển &amp; Giám sát&#xa;(New/SmartHouse_Hardware/smarthome-web)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1E88E5;fontColor=#0D47A1;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="650" y="150" width="300" height="65" as="geometry" />
         </mxCell>
-        <UserObject label="&lt;font style=&quot;font-size: 10px;&quot;&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;Tầng 1: An ninh &amp;amp; Giám sát&lt;/font&gt;" plantUmlId="c_11" plantUmlBaseStyle="shape=folder;tabWidth=183;tabHeight=23;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CFD8DC;strokeWidth=1.5;fontSize=14;fontStyle=1;fontColor=#263238;align=left;verticalAlign=top;spacingLeft=2;spacingTop=-4;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontFamily=Arial;" plantUmlBaseValue="Tầng 1: An ninh &amp;amp; Giám sát" id="ETSnzLahC6dEKFg1kJ80-65">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="shape=folder;tabWidth=183;tabHeight=23;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#FAFAFA;strokeColor=#CFD8DC;strokeWidth=1.5;fontSize=14;fontStyle=1;fontColor=#263238;align=left;verticalAlign=top;spacingLeft=2;spacingTop=-4;rounded=1;arcSize=12;absoluteArcSize=1;shadow=0;fontFamily=Arial;container=0;" vertex="1">
-            <mxGeometry height="100" width="890" x="920" y="98" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="Tương tác (Web/Mobile)" plantUmlId="e_62" plantUmlBaseStyle="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="Tương tác (Web/Mobile)" id="ETSnzLahC6dEKFg1kJ80-116">
-          <mxCell edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-54" style="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" target="ETSnzLahC6dEKFg1kJ80-56">
-            <mxGeometry relative="1" x="0.6297" y="-55" as="geometry">
-              <mxPoint as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="Đồng bộ (HTTP/Websocket)" plantUmlId="e_63" plantUmlBaseStyle="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="Đồng bộ (HTTP/Websocket)" id="ETSnzLahC6dEKFg1kJ80-117">
-          <mxCell edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-56" style="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" target="ETSnzLahC6dEKFg1kJ80-60">
-            <mxGeometry relative="1" x="0.8058" y="-50" as="geometry">
-              <mxPoint as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="Truyền nhận (Wi-Fi)" plantUmlId="e_64" plantUmlBaseStyle="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="Truyền nhận (Wi-Fi)" id="ETSnzLahC6dEKFg1kJ80-118">
-          <mxCell edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-60" style="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" target="ETSnzLahC6dEKFg1kJ80-61">
-            <mxGeometry relative="1" x="-0.5692" y="1" as="geometry">
-              <mxPoint as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <mxCell id="ETSnzLahC6dEKFg1kJ80-133" edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;defaultLabelBackgroundColor=page;">
-          <mxGeometry relative="1" x="0.061" as="geometry">
-            <Array as="points">
-              <mxPoint x="880" y="319" />
-              <mxPoint x="880" y="159.6" />
-            </Array>
-            <mxPoint x="920" y="159.58" as="targetPoint" />
-          </mxGeometry>
+
+        <mxCell id="firebase" value="Firebase Realtime Database&#xa;(smart-house-fcd4f - asia-southeast1)&#xa;/home/floor_1 | /home/floor_2 | /home/elevator | /home/door_status" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#F3E5F5;strokeColor=#8E24AA;fontColor=#4A148C;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="580" y="265" width="440" height="85" as="geometry" />
         </mxCell>
-        <mxCell id="ETSnzLahC6dEKFg1kJ80-141" edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-96" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;defaultLabelBackgroundColor=page;" target="ETSnzLahC6dEKFg1kJ80-100">
+
+        <mxCell id="e_user_web" value="Điều khiển / Xem trạng thái" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#455A64;strokeWidth=1.5;fontSize=12;" edge="1" parent="1" source="user" target="web">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <UserObject label="«Sensor»&#xa;Cảm biến Vân tay" plantUmlId="n_42" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="«Sensor»&#xa;Cảm biến Vân tay" id="ETSnzLahC6dEKFg1kJ80-96">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="49" width="151" x="935" y="458.5" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_43" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-97">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-96" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_44" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-98">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-96" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_45" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-99">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-96" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Actuator»&#xa;Khóa cửa T3" plantUmlId="n_46" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="«Actuator»&#xa;Khóa cửa T3" id="ETSnzLahC6dEKFg1kJ80-100">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="49" width="119" x="1121" y="458.5" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_47" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-101">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-100" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_48" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-102">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-100" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_49" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-103">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-100" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«MCU»&#xa;Bộ ĐK Thang máy&#xa;(Arduino UNO)" plantUmlId="n_50" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="«MCU»&#xa;Bộ ĐK Thang máy&#xa;(Arduino UNO)" id="ETSnzLahC6dEKFg1kJ80-104">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="62" width="150" x="1275" y="452" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_51" plantUmlBaseStyle="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-105">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-104" style="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_52" plantUmlBaseStyle="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-106">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-104" style="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_53" plantUmlBaseStyle="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-107">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-104" style="fillColor=#FFF3E0;strokeColor=#FF9800;part=1;shadow=0;fontColor=#E65100;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Sensor»&#xa;Nút gọi &amp; Hành trình" plantUmlId="n_54" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="«Sensor»&#xa;Nút gọi &amp; Hành trình" id="ETSnzLahC6dEKFg1kJ80-108">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="49" width="171" x="1360.5" y="574" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_55" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-109">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-108" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_56" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-110">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-108" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_57" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-111">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-108" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Actuator»&#xa;Động cơ (L298N)" plantUmlId="n_58" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="«Actuator»&#xa;Động cơ (L298N)" id="ETSnzLahC6dEKFg1kJ80-112">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="49" width="143" x="1182.5" y="574" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_59" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-113">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-112" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_60" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-114">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-112" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_61" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-115">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-112" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="e_74" plantUmlBaseStyle="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-128">
-          <mxCell edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-108" style="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" target="ETSnzLahC6dEKFg1kJ80-104">
-            <mxGeometry relative="1" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="e_75" plantUmlBaseStyle="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-129">
-          <mxCell edge="1" parent="ETSnzLahC6dEKFg1kJ80-53" source="ETSnzLahC6dEKFg1kJ80-104" style="strokeColor=#455A64;fontColor=#000000;fontSize=13;html=1;endArrow=classicThin;endFill=1;strokeWidth=1.5;fontFamily=Arial;edgeStyle=orthogonalEdgeStyle;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" target="ETSnzLahC6dEKFg1kJ80-112">
-            <mxGeometry relative="1" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Sensor»&#xa;Khí gas/Khói (MQ-2)" plantUmlId="n_33" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="«Sensor»&#xa;Khí gas/Khói (MQ-2)" id="ETSnzLahC6dEKFg1kJ80-87">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="174" x="934.9999999999999" y="293.7894736842105" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_34" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-88">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-87" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_35" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-89">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-87" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_36" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-90">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-87" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Actuator»&#xa;Còi cháy &amp; Đèn LED" plantUmlId="n_37" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="«Actuator»&#xa;Còi cháy &amp; Đèn LED" id="ETSnzLahC6dEKFg1kJ80-91">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="162" x="1144" y="293.7894736842105" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_38" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-92">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-91" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_39" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-93">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-91" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_40" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-94">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-91" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Sensor»&#xa;Cảm biến Hồng ngoại" plantUmlId="n_12" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="«Sensor»&#xa;Cảm biến Hồng ngoại" id="ETSnzLahC6dEKFg1kJ80-66">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;verticalAlign=middle;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="174" x="935" y="133.78947368421052" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_13" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-67">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-66" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_14" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-68">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-66" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_15" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-69">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-66" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Sensor»&#xa;Cảm biến Nhiệt/Ẩm" plantUmlId="n_16" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="«Sensor»&#xa;Cảm biến Nhiệt/Ẩm" id="ETSnzLahC6dEKFg1kJ80-70">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="162" x="1144" y="133.78947368421052" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_17" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-71">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-70" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_18" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-72">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-70" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_19" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-73">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-70" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Sensor»&#xa;Bàn phím 4x4" plantUmlId="n_20" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="«Sensor»&#xa;Bàn phím 4x4" id="ETSnzLahC6dEKFg1kJ80-74">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="130" x="1341" y="133.78947368421052" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_21" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-75">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-74" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_22" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-76">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-74" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_23" plantUmlBaseStyle="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-77">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-74" style="fillColor=#E8F5E9;strokeColor=#4CAF50;part=1;shadow=0;fontColor=#1B5E20;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Actuator»&#xa;Còi &amp; LCD 16x2" plantUmlId="n_24" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="«Actuator»&#xa;Còi &amp; LCD 16x2" id="ETSnzLahC6dEKFg1kJ80-78">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="135" x="1506" y="133.78947368421052" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_25" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-79">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-78" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_26" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-80">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-78" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_27" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-81">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-78" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="«Actuator»&#xa;Động cơ Cửa" plantUmlId="n_28" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="«Actuator»&#xa;Động cơ Cửa" id="ETSnzLahC6dEKFg1kJ80-82">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-53" style="rounded=1;absoluteArcSize=1;arcSize=12;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=14;whiteSpace=wrap;spacingRight=10;spacingTop=9;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="51.57894736842106" width="119" x="1676" y="133.78947368421052" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_29" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-83">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-82" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="10" relative="1" width="15" x="1" as="geometry">
-              <mxPoint x="-20" y="5" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_30" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-84">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-82" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="7" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" plantUmlId="ci_31" plantUmlBaseStyle="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" plantUmlBaseValue="" id="ETSnzLahC6dEKFg1kJ80-85">
-          <mxCell parent="ETSnzLahC6dEKFg1kJ80-82" style="fillColor=#FCE4EC;strokeColor=#E91E63;part=1;shadow=0;fontColor=#880E4F;fontFamily=Arial;" vertex="1">
-            <mxGeometry height="2" relative="1" width="4" x="1" as="geometry">
-              <mxPoint x="-22" y="11" as="offset" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
+
+        <mxCell id="e_web_fb" value="Đồng bộ Realtime (WebSocket / SDK)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#455A64;strokeWidth=1.5;fontSize=12;startArrow=classic;startFill=1;" edge="1" parent="1" source="web" target="firebase">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 3 MẠCH VI ĐIỀU KHIỂN ESP8266 NODEMCU -->
+        <mxCell id="mcu1" value="«MCU #1 - tang_1_1.ino»&#xa;ESP8266 NodeMCU (Tầng 1.1)&#xa;Nhà xe, Chiếu sáng, Quạt, Khí hậu &amp; Chống trộm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FB8C00;fontColor=#E65100;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="420" width="380" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mcu2" value="«MCU #2 - tang_1_2.ino»&#xa;ESP8266 NodeMCU (Tầng 1.2)&#xa;Khóa Cửa Chính (Keypad) &amp; Thang Máy 3 Tầng" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FB8C00;fontColor=#E65100;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="610" y="420" width="380" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mcu3" value="«MCU #3 - tang_2_3.ino»&#xa;ESP8266 NodeMCU (Tầng 2 &amp; 3)&#xa;Báo cháy MQ-2, Đèn T2, OLED &amp; Cửa Vân Tay AS608" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FB8C00;fontColor=#E65100;fontStyle=1;fontSize=13;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="420" width="380" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_fb_mcu1" value="HTTPS REST (BearSSL)&#xa;Chu kỳ 500ms" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8E24AA;strokeWidth=1.5;fontSize=11;startArrow=classic;startFill=1;" edge="1" parent="1" source="firebase" target="mcu1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="380" />
+              <mxPoint x="290" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_fb_mcu2" value="HTTPS REST (BearSSL)&#xa;Chu kỳ 500ms" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8E24AA;strokeWidth=1.5;fontSize=11;startArrow=classic;startFill=1;" edge="1" parent="1" source="firebase" target="mcu2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_fb_mcu3" value="HTTPS REST (BearSSL)&#xa;Chu kỳ 500ms" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8E24AA;strokeWidth=1.5;fontSize=11;startArrow=classic;startFill=1;" edge="1" parent="1" source="firebase" target="mcu3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="380" />
+              <mxPoint x="1310" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- KHỐI NGOẠI VI MẠCH 1 (TẦNG 1.1) -->
+        <mxCell id="grp1" value="Cụm Ngoại Vi Mạch 1 (Tầng 1.1)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#CFD8DC;fontColor=#263238;fontStyle=1;fontSize=13;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="550" width="500" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="m1_s1" value="«Sensor - Chân D3»&#xa;Cảm biến Nhiệt độ &amp; Độ ẩm DHT11&#xa;(Đọc mỗi 2s -> Ghi temperature_1, humidity_1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#1B5E20;fontSize=12;" vertex="1" parent="grp1">
+          <mxGeometry x="30" y="50" width="440" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="m1_s2" value="«Sensor - Chân D4»&#xa;Cảm biến Chống trộm Nhà xe (IR / PIR)&#xa;(Đọc alarm_enabled_1 -> Ghi alarm_triggered_1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#1B5E20;fontSize=12;" vertex="1" parent="grp1">
+          <mxGeometry x="30" y="120" width="440" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="m1_a1" value="«Display - Chân D1 (SCL), D2 (SDA)»&#xa;Màn hình LCD 16x2 I2C (0x27)&#xa;(Hiển thị Nhiệt độ, Độ ẩm, Trạng thái An ninh &amp; Quạt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp1">
+          <mxGeometry x="30" y="190" width="440" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="m1_a2" value="«Actuator - Chân D5 (IN1), D6 (IN2)»&#xa;Cửa cuốn Garage (L298N Kênh A - OUT1/OUT2)&#xa;(Mở PWM 90 / Đóng PWM 85 trong 300ms | garage/command &amp; status)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp1">
+          <mxGeometry x="30" y="260" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="m1_a3" value="«Actuator - Chân D7 (L298N IN3) &amp; Chân D0 (MOSFET)»&#xa;Quạt làm mát T1 (fan_room_1) &amp; Dãy Đèn LED T1 (light_room_1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp1">
+          <mxGeometry x="30" y="335" width="440" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_mcu1_grp1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FB8C00;strokeWidth=1.5;startArrow=classic;startFill=1;" edge="1" parent="1" source="mcu1" target="grp1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- KHỐI NGOẠI VI MẠCH 2 (TẦNG 1.2) -->
+        <mxCell id="grp2" value="Cụm Ngoại Vi Mạch 2 (Tầng 1.2)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#CFD8DC;fontColor=#263238;fontStyle=1;fontSize=13;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="550" width="480" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="m2_s1" value="«Input - Chân D1 (SCL), D2 (SDA)»&#xa;Bàn phím Ma trận 4x4 + Module I2C PCF8574 (0x20)&#xa;(Nhập mật khẩu &quot;111#&quot; -> Nhấn A mở cửa, C xóa, D đổi MK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#1B5E20;fontSize=12;" vertex="1" parent="grp2">
+          <mxGeometry x="25" y="50" width="430" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="m2_a1" value="«Display - Chân D1 (SCL), D2 (SDA)»&#xa;Màn hình LCD 16x2 I2C Cửa chính (0x27)&#xa;(Hiển thị nhắc mật khẩu ****, trạng thái Mở cửa / Đổi MK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp2">
+          <mxGeometry x="25" y="135" width="430" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="m2_a2" value="«Actuator - Chân D4»&#xa;Động cơ Servo SG90 Khóa Cửa chính&#xa;(Mở góc 20° trong 3000ms rồi đóng góc 100° | Tự bật light_room_1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp2">
+          <mxGeometry x="25" y="220" width="430" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="m2_a3" value="«Actuator - Chân D5 (IN1 Lên), D6 (IN2 Xuống)»&#xa;Động cơ Thang máy 3 Tầng (L298N OUT1/OUT2)&#xa;(Đi lên PWM 200 / Đi xuống PWM 70 | target_floor, current_floor, status)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp2">
+          <mxGeometry x="25" y="305" width="430" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_mcu2_grp2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FB8C00;strokeWidth=1.5;startArrow=classic;startFill=1;" edge="1" parent="1" source="mcu2" target="grp2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- KHỐI NGOẠI VI MẠCH 3 (TẦNG 2 & 3) -->
+        <mxCell id="grp3" value="Cụm Ngoại Vi Mạch 3 (Tầng 2 &amp; Tầng 3)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#CFD8DC;fontColor=#263238;fontStyle=1;fontSize=13;startSize=30;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="550" width="500" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="m3_s1" value="«Sensor - Chân A0 &amp; Nút nhấn D5»&#xa;[Tầng 2] Cảm biến Khói/Gas MQ-2 (Ngưỡng ADC 120, đọc 500ms)&#xa;&amp; Công tắc Nút nhấn vật lý bật/tắt đèn Tầng 2 (Debounce 50ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#1B5E20;fontSize=12;" vertex="1" parent="grp3">
+          <mxGeometry x="25" y="50" width="450" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="m3_s2" value="«Sensor - Chân D7 (SoftRX), D8 (SoftTX)»&#xa;[Tầng 3] Cảm biến Vân tay Quang học AS608 (UART 57600 baud)&#xa;(Quét mỗi 150ms &amp; Hỗ trợ đăng ký vân tay qua lệnh Serial ENROLL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#1B5E20;fontSize=12;" vertex="1" parent="grp3">
+          <mxGeometry x="25" y="130" width="450" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="m3_a1" value="«Actuator - Chân D6 (Đèn T2) &amp; Chân D1 (Còi Buzzer)»&#xa;[Tầng 2 &amp; 3] Đèn LED Tầng 2 (light_room_2) &amp; Còi Buzzer chung&#xa;(Kêu khi có khói &gt; 120 trừ khi buzzer_mute_2=true; bíp 300ms khi mở vân tay)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp3">
+          <mxGeometry x="25" y="210" width="450" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="m3_a2" value="«Display - Chân D2 (SDA), D3 (SCL)»&#xa;[Tầng 2] Màn hình OLED 0.96&quot; SSD1306 I2C (0x3C)&#xa;(Hiển thị Loading, Smart Home WELCOME!, thông điệp &amp; Cảnh báo cháy)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp3">
+          <mxGeometry x="25" y="290" width="450" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="m3_a3" value="«Actuator - Chân D4»&#xa;[Tầng 3] Động cơ Servo SG90 Khóa Cửa Vân Tay&#xa;(Mở góc 180° trong 2000ms rồi đóng về 0° | Đồng bộ /home/door_status)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCE4EC;strokeColor=#D81B60;fontColor=#880E4F;fontSize=12;" vertex="1" parent="grp3">
+          <mxGeometry x="25" y="365" width="450" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_mcu3_grp3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FB8C00;strokeWidth=1.5;startArrow=classic;startFill=1;" edge="1" parent="1" source="mcu3" target="grp3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="2. Sơ Đồ Đấu Nối Chân (3 Mạch ESP8266)" id="wiring-v4">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- BẢNG 1: SƠ ĐỒ ĐẤU NỐI MẠCH 1 (tang_1_1.ino) -->
+        <mxCell id="w_box1" value="MẠCH 1: ESP8266 NODEMCU #1 (tang_1_1.ino - Tầng 1.1)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FB8C00;fontColor=#E65100;fontStyle=1;fontSize=14;startSize=35;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="480" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="w1_text" value="• D0 (GPIO16)  ───►  Chân SIG/IN Module MOSFET ───► Dãy Đèn LED Tầng 1&#xa;&#xa;• D1 (GPIO5)   ───►  Chân SCL của Màn hình LCD 16x2 I2C (0x27)&#xa;&#xa;• D2 (GPIO4)   ───►  Chân SDA của Màn hình LCD 16x2 I2C (0x27)&#xa;&#xa;• D3 (GPIO0)   ───►  Chân DATA / OUT của Cảm biến DHT11 (VCC nối 3V3)&#xa;&#xa;• D4 (GPIO2)   ───►  Chân DO / OUT của Cảm biến Chống trộm Nhà xe&#xa;&#xa;• D5 (GPIO14)  ───►  Chân IN1 (L298N #1 - Kênh A) ───► Motor Cửa Garage (Mở)&#xa;&#xa;• D6 (GPIO12)  ───►  Chân IN2 (L298N #1 - Kênh A) ───► Motor Cửa Garage (Đóng)&#xa;&#xa;• D7 (GPIO13)  ───►  Chân IN3 (L298N #1 - Kênh B) ───► Quạt làm mát Tầng 1&#xa;                     (Chân IN4 nối GND; giữ nguyên Jumper ENA &amp; ENB trên L298N)&#xa;&#xa;• VIN (5V)     ───►  Chân VCC của LCD 16x2 I2C&#xa;&#xa;• 3V3          ───►  Chân VCC của DHT11 &amp; Cảm biến Chống trộm&#xa;&#xa;• GND          ───►  Nối chung GND của L298N #1, Nguồn ngoài, MOSFET, LCD, DHT11" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Consolas;" vertex="1" parent="w_box1">
+          <mxGeometry x="20" y="50" width="440" height="450" as="geometry" />
+        </mxCell>
+
+        <!-- BẢNG 2: SƠ ĐỒ ĐẤU NỐI MẠCH 2 (tang_1_2.ino) -->
+        <mxCell id="w_box2" value="MẠCH 2: ESP8266 NODEMCU #2 (tang_1_2.ino - Tầng 1.2)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;fontColor=#1B5E20;fontStyle=1;fontSize=14;startSize=35;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="40" width="480" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="w2_text" value="• D1 (GPIO5)   ───►  Bus I2C SCL chung:&#xa;                     ├─► Chân SCL của LCD 16x2 Cửa chính (0x27)&#xa;                     └─► Chân SCL (Pin 14) của Module PCF8574 (0x20 - Keypad 4x4)&#xa;&#xa;• D2 (GPIO4)   ───►  Bus I2C SDA chung:&#xa;                     ├─► Chân SDA của LCD 16x2 Cửa chính (0x27)&#xa;                     └─► Chân SDA (Pin 15) của Module PCF8574 (0x20 - Keypad 4x4)&#xa;                     (8 chân Keypad R1..R4, C1..C4 cắm vào P0..P7 của PCF8574)&#xa;&#xa;• D4 (GPIO2)   ───►  Dây Cam/Vàng (PWM) của Servo SG90 Khóa Cửa chính&#xa;                     (Góc đóng 100°, góc mở 20° trong 3 giây)&#xa;&#xa;• D5 (GPIO14)  ───►  Chân IN1 (L298N #2) ───► Motor Thang máy Đi LÊN (PWM 200)&#xa;&#xa;• D6 (GPIO12)  ───►  Chân IN2 (L298N #2) ───► Motor Thang máy Đi XUỐNG (PWM 70)&#xa;                     (Giữ Jumper ENA trên L298N #2; Motor đấu vào OUT1 &amp; OUT2)&#xa;&#xa;• D0, D3, D7   ───►  (Tùy chọn) Công tắc hành trình Tầng 1, 2, 3&#xa;&#xa;• VIN / 5V     ───►  VCC của LCD 16x2 &amp; Dây Đỏ (+5V) của Servo SG90&#xa;&#xa;• GND          ───►  Nối chung GND của L298N #2, Nguồn ngoài, Servo, LCD, PCF8574" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Consolas;" vertex="1" parent="w_box2">
+          <mxGeometry x="20" y="50" width="440" height="450" as="geometry" />
+        </mxCell>
+
+        <!-- BẢNG 3: SƠ ĐỒ ĐẤU NỐI MẠCH 3 (tang_2_3.ino) -->
+        <mxCell id="w_box3" value="MẠCH 3: ESP8266 NODEMCU #3 (tang_2_3.ino - Tầng 2 &amp; 3)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1E88E5;fontColor=#0D47A1;fontStyle=1;fontSize=14;startSize=35;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="40" width="480" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="w3_text" value="• A0 (ADC0)    ───►  Chân AO (Analog) của Cảm biến Khói/Gas MQ-2 (Tầng 2)&#xa;&#xa;• D1 (GPIO5)   ───►  Cực Dương (+) của Còi Buzzer 5V (Báo cháy T2 + Báo vân tay T3)&#xa;&#xa;• D2 (GPIO4)   ───►  Chân SDA của Màn hình OLED 0.96&quot; SSD1306 I2C (0x3C - Tầng 2)&#xa;&#xa;• D3 (GPIO0)   ───►  Chân SCL của Màn hình OLED 0.96&quot; SSD1306 I2C (0x3C - Tầng 2)&#xa;&#xa;• D4 (GPIO2)   ───►  Dây Cam/Vàng (PWM) của Servo SG90 Khóa Cửa Tầng 3&#xa;                     (Góc mở 180° trong 2 giây, góc đóng 0°)&#xa;&#xa;• D5 (GPIO14)  ───►  Chân 1 của Nút nhấn vật lý bật/tắt đèn Tầng 2 (Chân 2 nối GND)&#xa;&#xa;• D6 (GPIO12)  ───►  Chân SIG/IN của MOSFET / Relay Đèn LED Tầng 2&#xa;&#xa;• D7 (GPIO13)  ───►  Chân TX (Dây Trắng/Vàng) của Cảm biến Vân tay AS608 (Tầng 3)&#xa;&#xa;• D8 (GPIO15)  ───►  Chân RX (Dây Xanh) của Cảm biến Vân tay AS608 (Tầng 3)&#xa;&#xa;• 3V3 / 5V     ───►  VCC của AS608 (3.3V), OLED (3.3V), MQ-2 (5V), Servo SG90 (5V)&#xa;&#xa;• GND          ───►  Nối chung GND toàn mạch" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Consolas;" vertex="1" parent="w_box3">
+          <mxGeometry x="20" y="50" width="440" height="450" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
